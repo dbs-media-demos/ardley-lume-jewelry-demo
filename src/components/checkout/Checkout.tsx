@@ -188,7 +188,7 @@ export function Checkout() {
           <p className="text-center text-sm text-taupe">Express checkout</p>
           <div className="mt-3 grid grid-cols-3 gap-2">
             {[
-              { id: "Apple Pay", cls: "bg-ink text-ivory", label: " Pay" },
+              { id: "Apple Pay", cls: "bg-ink text-ivory", label: "Apple Pay" },
               { id: "Google Pay", cls: "border border-ink/20 bg-white text-ink", label: "G Pay" },
               { id: "PayPal", cls: "bg-[#ffc439] text-[#003087]", label: "PayPal" },
             ].map((x) => (

@@ -33,19 +33,32 @@ export function ProductGallery({ slug, name, tone, heroes, rest, scale, metalLab
   const strip = useRef<HTMLDivElement>(null);
   const sweep = useRef<HTMLDivElement>(null);
   const firstTone = useRef(tone);
+  const [allTones, setAllTones] = useState(false);
 
-  // Light sweep whenever the metal changes.
+  // Light sweep whenever the metal changes (and make sure every tone is mounted).
   useEffect(() => {
     if (firstTone.current === tone) return;
     firstTone.current = tone;
+    const id = window.requestAnimationFrame(() => setAllTones(true));
     const el = sweep.current;
     if (!el) return;
     delete el.dataset.glint;
     void el.offsetWidth;
     el.dataset.glint = "on";
+    return () => window.cancelAnimationFrame(id);
   }, [tone]);
 
-  const tones = Array.from(new Map((["yellow", "white", "rose"] as Tone[]).map((t) => [heroes[t].src, heroes[t]])).values());
+  // The other metal tones load after the page has settled (or as soon as a metal is picked).
+  useEffect(() => {
+    const w = window as Window & { requestIdleCallback?: typeof requestIdleCallback };
+    const run = () => setAllTones(true);
+    const t = window.setTimeout(() => (w.requestIdleCallback ? w.requestIdleCallback(run, { timeout: 4000 }) : run()), 2500);
+    return () => window.clearTimeout(t);
+  }, []);
+  const tones = Array.from(new Map((["yellow", "white", "rose"] as Tone[]).map((t) => [heroes[t].src, heroes[t]])).values()).filter(
+    (im) => allTones || im.src === heroes[tone].src,
+  );
+
   const photos = [heroes[tone], ...rest];
 
   const hero = (
@@ -58,7 +71,7 @@ export function ProductGallery({ slug, name, tone, heroes, rest, scale, metalLab
           aria-hidden={im.src !== heroes[tone].src}
           fill
           sizes="(min-width: 1024px) 55vw, 100vw"
-          quality={85}
+          quality={75}
           preload={i === 0}
           placeholder={im.blur ? "blur" : "empty"}
           blurDataURL={im.blur || undefined}

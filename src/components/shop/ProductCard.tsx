@@ -35,6 +35,10 @@ function toneSwatches(metals: Metal[]) {
 export function ProductCard({ card, sizes = "(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw", priority, morph, className, tone: theme = "light" }: Props) {
   const swatches = toneSwatches(card.metals);
   const [metal, setMetal] = useState<Metal>(card.metals[0]);
+  // Only the visible photo loads up front; other tones and the on-model shot are
+  // mounted the first time someone shows interest (hover, focus, swatch).
+  const [warm, setWarm] = useState(false);
+  const wake = () => setWarm(true);
   const imgWrap = useRef<HTMLDivElement>(null);
   const tone = metalTone[metal];
   const href = `/product/${card.slug}${metal !== card.metals[0] ? `?metal=${metal}` : ""}`;
@@ -46,6 +50,7 @@ export function ProductCard({ card, sizes = "(min-width: 1024px) 25vw, (min-widt
     <div ref={imgWrap} className="glint relative aspect-[4/5] overflow-hidden rounded-[0.9rem] bg-bone">
       {distinct.map((im) => {
         const show = im.src === card.tones[tone].src;
+        if (!show && !warm) return null;
         return (
           <Image
             key={im.src}
@@ -65,20 +70,28 @@ export function ProductCard({ card, sizes = "(min-width: 1024px) 25vw, (min-widt
           />
         );
       })}
-      <Image
-        src={card.model.src}
-        alt=""
-        aria-hidden
-        fill
-        sizes={sizes}
-        quality={60}
-        className="object-cover opacity-0 transition-opacity duration-700 ease-[var(--ease-out-expo)] [@media(hover:hover)]:group-hover/card:opacity-100"
-      />
+      {warm && (
+        <Image
+          src={card.model.src}
+          alt=""
+          aria-hidden
+          fill
+          sizes={sizes}
+          quality={60}
+          className="object-cover opacity-0 transition-opacity duration-700 ease-[var(--ease-out-expo)] [@media(hover:hover)]:group-hover/card:opacity-100"
+        />
+      )}
     </div>
   );
 
   return (
-    <article className={clsx("group/card relative", className)} data-card={card.slug}>
+    <article
+      className={clsx("group/card relative", className)}
+      data-card={card.slug}
+      onPointerEnter={(e) => e.pointerType === "mouse" && wake()}
+      onFocus={wake}
+      onTouchStart={wake}
+    >
       <div className="relative">
         <Link href={href} data-cursor="View" className="block" aria-label={`${card.name}, ${metalLabel[metal]}`}>
           {morph ? (

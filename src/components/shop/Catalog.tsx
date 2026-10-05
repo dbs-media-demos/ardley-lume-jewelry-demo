@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import clsx from "clsx";
 import type { CardData } from "@/lib/card-types";
@@ -23,8 +22,17 @@ type Props = {
  * (and fade the leavers) instead of the grid jumping.
  */
 export function Catalog({ cards, categories }: Props) {
-  const sp = useSearchParams();
-  const [filters, setFilters] = useState<Filters>(() => parseFilters(new URLSearchParams(sp.toString())));
+  // Filters come from the URL after mount, so the grid itself is fully server-rendered (no Suspense swap, no layout shift).
+  const [filters, setFilters] = useState<Filters>(() => parseFilters(new URLSearchParams()));
+  const hydrated = useRef(false);
+  useEffect(() => {
+    const fromUrl = parseFilters(new URLSearchParams(window.location.search));
+    const id = window.requestAnimationFrame(() => {
+      hydrated.current = true;
+      if (activeCount(fromUrl) || fromUrl.sort !== "featured") setFilters(fromUrl);
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, []);
   const [sheet, setSheet] = useState(false);
   const grid = useRef<HTMLDivElement>(null);
   const flipState = useRef<ReturnType<typeof FlipType.getState> | null>(null);
@@ -42,6 +50,7 @@ export function Catalog({ cards, categories }: Props) {
 
   // Sync filters → URL (no navigation, no server round trip).
   useEffect(() => {
+    if (!hydrated.current) return;
     const url = `${window.location.pathname}${toQuery(filters)}`;
     if (url !== `${window.location.pathname}${window.location.search}`) window.history.replaceState(null, "", url);
   }, [filters]);

@@ -81,6 +81,21 @@
     outline-color: var(--color-gold-ink);
   }
 
+  /* Visually-hidden inputs are absolutely positioned: keep them inside their label,
+     or they escape scroll containers and widen the page. */
+  label:has(> input.sr-only) {
+    position: relative;
+  }
+
+  html {
+    overflow-x: hidden;
+  }
+
+  /* Fieldsets default to min-content width, which lets wide rails overflow. */
+  fieldset {
+    min-width: 0;
+  }
+
   button,
   [role="button"],
   summary,
@@ -572,4 +587,8 @@
   .no-print {
     display: none !important;
   }
+}
+
+.footer-wordmark::before {
+  content: "Ardley & Lume";
 }

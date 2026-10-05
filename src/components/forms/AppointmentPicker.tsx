@@ -88,7 +88,7 @@ export function AppointmentPicker() {
     );
 
   return (
-    <div className="space-y-10">
+    <div className="min-w-0 space-y-10">
       <fieldset>
         <legend className="font-display text-3xl">What would you like to do?</legend>
         <div className="mt-5 grid gap-2 sm:grid-cols-2">

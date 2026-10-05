@@ -15,6 +15,9 @@ export function HomeHero() {
   const { props: wideProps } = getImageProps({ ...common, src: wide.src, width: wide.w, height: wide.h });
 
   return (
+    // The spacer is rendered up front and handed to ScrollTrigger, so pinning never
+    // re-parents the hero (re-inserting it would register a late LCP candidate).
+    <div id="hero-spacer">
     <section id="hero" data-hero-dark className="group/hero relative h-[100svh] min-h-[38rem] overflow-hidden bg-ink text-ivory">
       <div data-hero-photo className="absolute inset-0 origin-[62%_55%] transition-opacity duration-[2s] group-data-[ring=on]/hero:opacity-55">
         <picture className="zoom-settle absolute inset-0 block">
@@ -69,5 +72,6 @@ export function HomeHero() {
       <div data-hero-flash aria-hidden className="pointer-events-none absolute inset-0 z-[4] bg-[radial-gradient(circle_at_62%_45%,#fff8e6,#e8d6a8_35%,transparent_75%)] opacity-0" />
       <div data-hero-night aria-hidden className="pointer-events-none absolute inset-0 z-[5] bg-ink opacity-0" />
     </section>
+    </div>
   );
 }

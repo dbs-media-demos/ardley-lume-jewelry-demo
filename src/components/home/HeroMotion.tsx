@@ -32,6 +32,7 @@ export function HeroMotion() {
           start: "top top",
           end: "+=110%",
           pin: true,
+          pinSpacer: document.getElementById("hero-spacer") ?? undefined,
           scrub: 0.6,
           onUpdate: (st) => {
             progress.current = st.progress;
@@ -82,25 +83,24 @@ export function HeroMotion() {
       setLive(true);
     };
 
-    if (touch) {
-      const kick = () => {
-        window.removeEventListener("touchstart", kick);
-        window.removeEventListener("scroll", kick);
-        start();
-      };
-      window.addEventListener("touchstart", kick, { passive: true, once: true });
-      window.addEventListener("scroll", kick, { passive: true, once: true });
-      const t = window.setTimeout(kick, 6000);
-      cleanupIdle = () => {
-        window.clearTimeout(t);
-        window.removeEventListener("touchstart", kick);
-        window.removeEventListener("scroll", kick);
-      };
-    } else {
-      // Desktop: after load + idle, so it never competes with first paint.
-      const t = window.setTimeout(() => (cleanupIdle = whenIdle(() => void start(), 2500)), 1200);
-      cleanupIdle = () => window.clearTimeout(t);
-    }
+    // Starts on the first sign of a person (pointer, scroll, touch, key), never during the
+    // initial load: compiling the gem's shaders is a long task. Fallback after 10 s.
+    const kick = () => {
+      cleanupIdle();
+      cleanupIdle = whenIdle(() => void start(), 600);
+    };
+    const events = touch ? (["touchstart", "scroll"] as const) : (["pointermove", "scroll", "keydown", "pointerdown"] as const);
+    const once = () => {
+      events.forEach((ev) => window.removeEventListener(ev, once));
+      window.clearTimeout(fallback);
+      kick();
+    };
+    events.forEach((ev) => window.addEventListener(ev, once, { passive: true }));
+    const fallback = window.setTimeout(once, touch ? 6000 : 10000);
+    cleanupIdle = () => {
+      window.clearTimeout(fallback);
+      events.forEach((ev) => window.removeEventListener(ev, once));
+    };
 
     const onMove = (e: PointerEvent) => ring.current?.setPointer((e.clientX / window.innerWidth) * 2 - 1, (e.clientY / window.innerHeight) * 2 - 1);
     window.addEventListener("pointermove", onMove, { passive: true });

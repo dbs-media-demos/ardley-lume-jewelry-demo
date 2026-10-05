@@ -132,7 +132,7 @@ export function Reveal({ children, as: Tag = "div", className, delay = 0, y = 32
 }
 
 /** Paragraph whose words brighten one by one as you scroll through it. */
-export function ScrubWords({ text, className, as: Tag = "p", from = 0.42 }: { text: string; className?: string; as?: ElementType; from?: number }) {
+export function ScrubWords({ text, className, as: Tag = "p", from = 0.55 }: { text: string; className?: string; as?: ElementType; from?: number }) {
   const ref = useRef<HTMLElement>(null);
 
   useGSAP(

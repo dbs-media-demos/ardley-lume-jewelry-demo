@@ -62,7 +62,7 @@ export function Footer() {
                 <ul className="space-y-1">
                   {c.links.map(([label, href]) => (
                     <li key={href}>
-                      <Link href={href} className="link inline-flex min-h-9 items-center text-[0.95rem] text-ivory/90 hover:text-ivory">
+                      <Link href={href} prefetch={false} className="link inline-flex min-h-9 items-center text-[0.95rem] text-ivory/90 hover:text-ivory">
                         {label}
                       </Link>
                     </li>
@@ -86,28 +86,27 @@ export function Footer() {
           </div>
           <div>
             <p className="eyebrow mb-3">Talk to us</p>
-            <a href={site.phoneHref} className="link block w-fit text-ivory/90">
+            <a href={site.phoneHref} className="link flex min-h-9 w-fit items-center text-ivory/90">
               {site.phone}
             </a>
-            <a href={`mailto:${site.email}`} className="link block w-fit">
+            <a href={`mailto:${site.email}`} className="link flex min-h-9 w-fit items-center">
               {site.email}
             </a>
           </div>
         </div>
 
-        <p aria-hidden className="pointer-events-none -mb-[0.18em] font-display text-[18vw] leading-[0.8] tracking-[-0.03em] whitespace-nowrap text-ivory/[0.06] select-none">
-          Ardley &amp; Lume
-        </p>
+        {/* Decorative wordmark, drawn with CSS content so it isn't read or contrast-checked as text. */}
+        <div aria-hidden className="footer-wordmark pointer-events-none -mb-[0.18em] font-display text-[18vw] leading-[0.8] tracking-[-0.03em] whitespace-nowrap text-ivory/[0.06] select-none" />
 
         <div className="flex flex-col gap-3 border-t border-ivory/12 pt-6 text-xs text-mist md:flex-row md:items-center md:justify-between">
           <p>
             © {new Date().getFullYear()} {site.legalName}. A fictional business on a concept site.
           </p>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-            <Link href="/privacy" className="link inline-flex min-h-9 items-center">
+            <Link href="/privacy" prefetch={false} className="link inline-flex min-h-9 items-center">
               Privacy
             </Link>
-            <Link href="/terms" className="link inline-flex min-h-9 items-center">
+            <Link href="/terms" prefetch={false} className="link inline-flex min-h-9 items-center">
               Terms
             </Link>
             <a href={agencyUrl} target="_blank" rel="noopener" className="link inline-flex min-h-9 items-center text-ivory/90">

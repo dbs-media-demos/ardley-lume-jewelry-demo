@@ -30,6 +30,9 @@ export function Header({ menu }: { menu: MenuData }) {
   const [mega, setMega] = useState(false);
   const [mobile, setMobile] = useState(false);
   const [hoverCat, setHoverCat] = useState(0);
+  // Menu photos are only fetched once a menu has been opened (they're hidden until then).
+  const [menusUsed, setMenusUsed] = useState(false);
+  if ((mega || mobile) && !menusUsed) setMenusUsed(true);
   const closeTimer = useRef<number>(0);
   const megaBtn = useRef<HTMLButtonElement>(null);
 
@@ -203,6 +206,7 @@ export function Header({ menu }: { menu: MenuData }) {
                 <li key={c.slug} style={{ transitionDelay: mega ? `${80 + i * 45}ms` : "0ms" }} className={clsx("transition-[opacity,transform] duration-700", mega ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0")}>
                   <Link
                     href={`/shop/${c.slug}`}
+                    prefetch={false}
                     onMouseEnter={() => setHoverCat(i)}
                     onFocus={() => setHoverCat(i)}
                     className="group flex min-h-10 items-center gap-3 font-display text-[1.65rem] leading-tight"
@@ -222,7 +226,7 @@ export function Header({ menu }: { menu: MenuData }) {
             <ul className="space-y-1">
               {menu.collections.map((c) => (
                 <li key={c.slug}>
-                  <Link href={`/collections/${c.slug}`} className="link inline-flex min-h-10 items-center text-[1.02rem]">
+                  <Link href={`/collections/${c.slug}`} prefetch={false} className="link inline-flex min-h-10 items-center text-[1.02rem]">
                     {c.name}
                   </Link>
                 </li>
@@ -240,7 +244,7 @@ export function Header({ menu }: { menu: MenuData }) {
             </ul>
           </div>
           <div className="relative aspect-[4/5] overflow-hidden rounded-xl bg-bone">
-            {menu.categories.map((c, i) => (
+            {menusUsed && menu.categories.map((c, i) => (
               <Image
                 key={c.slug}
                 src={c.img.src}
@@ -254,7 +258,7 @@ export function Header({ menu }: { menu: MenuData }) {
             <span className="eyebrow absolute bottom-4 left-4 rounded-full bg-ivory/90 px-3 py-1.5 text-ink">{menu.categories[hoverCat]?.name}</span>
           </div>
           <Link href="/engagement/build" className="group relative flex aspect-[4/5] flex-col justify-end overflow-hidden rounded-xl bg-ink p-6 text-ivory">
-            <Image src={menu.feature.src} alt="" fill sizes="22vw" quality={60} className="object-cover opacity-70 transition-transform duration-[1.6s] ease-[var(--ease-out-expo)] group-hover:scale-105" />
+            {menusUsed && <Image src={menu.feature.src} alt="" fill sizes="22vw" quality={60} className="object-cover opacity-70 transition-transform duration-[1.6s] ease-[var(--ease-out-expo)] group-hover:scale-105" />}
             <span className="relative eyebrow text-gold-pale">The ring builder</span>
             <span className="relative mt-2 font-display text-3xl leading-none">Design your engagement ring</span>
             <span className="relative mt-4 text-sm text-ivory/85">Setting, stone, metal, size. Live price. →</span>
@@ -276,8 +280,8 @@ export function Header({ menu }: { menu: MenuData }) {
           <ul className="grid grid-cols-2 gap-3">
             {menu.categories.map((c, i) => (
               <li key={c.slug} style={{ transitionDelay: mobile ? `${100 + i * 50}ms` : "0ms" }} className={clsx("transition-[opacity,transform] duration-700", mobile ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0")}>
-                <Link href={`/shop/${c.slug}`} className="relative block aspect-[4/3] overflow-hidden rounded-lg bg-forest">
-                  <Image src={c.img.src} alt="" fill sizes="45vw" quality={60} className="object-cover opacity-75" />
+                <Link href={`/shop/${c.slug}`} prefetch={false} className="relative block aspect-[4/3] overflow-hidden rounded-lg bg-forest">
+                  {menusUsed && <Image src={c.img.src} alt="" fill sizes="45vw" quality={60} className="object-cover opacity-75" />}
                   <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink/85 to-transparent p-3 font-display text-xl">{c.name}</span>
                 </Link>
               </li>
@@ -286,7 +290,7 @@ export function Header({ menu }: { menu: MenuData }) {
           <ul className="mt-8 space-y-1 border-t border-ivory/15 pt-6">
             {[{ href: "/shop", label: "Shop everything" }, ...primary, { href: "/engagement/build", label: "Ring builder" }, { href: "/collections/on-sale", label: "On sale now" }, { href: "/appointment", label: "Book a showroom visit" }, { href: "/visit", label: "Visit & contact" }].map((l) => (
               <li key={l.href}>
-                <Link href={l.href} className="flex min-h-12 items-center font-display text-[1.7rem]">
+                <Link href={l.href} prefetch={false} className="flex min-h-12 items-center font-display text-[1.7rem]">
                   {l.label}
                 </Link>
               </li>

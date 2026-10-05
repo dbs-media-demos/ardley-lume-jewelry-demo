@@ -31,7 +31,8 @@ export function DemoPill() {
     <div
       className={clsx(
         "fixed right-3 z-[120] flex items-center overflow-hidden rounded-full border border-ivory/15 bg-ink/90 text-[0.75rem] text-ivory shadow-[0_10px_30px_-12px_rgba(0,0,0,0.5)] backdrop-blur md:right-5 md:bottom-5",
-        raised ? "bottom-[5.25rem]" : "bottom-3",
+        // Checkout already carries a demo banner; keep its buttons clear on phones.
+        raised ? "bottom-[5.25rem]" : "bottom-3 max-md:hidden",
       )}
     >
       <a href={agencyUrl} target="_blank" rel="noopener" className="flex min-h-11 items-center gap-2 py-2 pr-1 pl-4 font-medium hover:text-gold-pale">

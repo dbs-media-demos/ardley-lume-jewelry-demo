@@ -1,11 +1,10 @@
-import { Suspense, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import type { CardData } from "@/lib/card-types";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { LetterTitle } from "@/components/ui/LetterTitle";
 import { CategoryRail } from "./CategoryRail";
 import { Catalog } from "./Catalog";
 import { OfferMarquee } from "./OfferMarquee";
-import { ProductCard } from "./ProductCard";
 import { categories } from "@/content/catalog";
 import { img } from "@/lib/images";
 
@@ -59,18 +58,11 @@ export function ShopShell({ eyebrow, title, intro, crumbs, cards, current, facet
         </div>
       </section>
       {feature}
-      <section className="wrap pb-24" aria-label="Products">
-        <Suspense
-          fallback={
-            <div className="mt-[4.6rem] grid grid-cols-2 gap-x-4 gap-y-10 md:gap-x-6 lg:grid-cols-3 xl:grid-cols-4">
-              {cards.map((c, i) => (
-                <ProductCard key={c.slug} card={c} priority={i < 2} />
-              ))}
-            </div>
-          }
-        >
-          <Catalog cards={cards} categories={facetCategories ? categories.map((c) => ({ slug: c.slug, name: c.name })) : undefined} />
-        </Suspense>
+      <section className="wrap pb-24" aria-labelledby="products-title">
+        <h2 id="products-title" className="sr-only">
+          Products
+        </h2>
+        <Catalog cards={cards} categories={facetCategories ? categories.map((c) => ({ slug: c.slug, name: c.name })) : undefined} />
       </section>
       {after}
     </>
