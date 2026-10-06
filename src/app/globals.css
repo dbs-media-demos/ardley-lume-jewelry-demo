@@ -524,8 +524,8 @@
 
 /* The facets scene slides up over the end of the hero dive. */
 #facets[data-overlap="on"] {
-  margin-top: -60svh;
-  background: linear-gradient(to bottom, transparent 0, transparent 60svh, var(--color-ink) 60svh);
+  margin-top: -30svh;
+  background: linear-gradient(to bottom, transparent 0, transparent 30svh, var(--color-ink) 30svh);
 }
 
 .letter {

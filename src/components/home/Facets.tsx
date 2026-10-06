@@ -51,7 +51,8 @@ export function Facets() {
 
   return (
     <section ref={root} id="facets" data-dark className="relative z-[6] bg-ink text-ivory" aria-labelledby="facets-title">
-      <div className="sticky top-0 h-[100svh] overflow-hidden">
+      {/* Clip sideways only: while this scene rises over the hero, the diagram may extend above its top edge. */}
+      <div className="sticky top-0 h-[100svh] overflow-x-clip">
         <div className="absolute inset-0 grid place-items-center">
           <svg data-diagram viewBox="0 0 1000 1000" className="w-[150vw] max-w-none opacity-80 md:w-[min(92vh,80vw)]" aria-hidden>
             <defs>
