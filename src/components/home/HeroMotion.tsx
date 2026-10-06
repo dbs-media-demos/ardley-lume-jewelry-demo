@@ -44,23 +44,17 @@ export function HeroMotion() {
         .to("[data-hero-copy]", { yPercent: -35, opacity: 0, duration: 0.45 }, 0)
         .to("[data-hero-cue]", { opacity: 0, duration: 0.15 }, 0)
         .to("[data-hero-canvas]", { scale: 1.08, duration: 1 }, 0)
-        .fromTo("[data-hero-flash]", { opacity: 0 }, { opacity: 0.9, duration: 0.2 }, 0.42)
-        .to("[data-hero-flash]", { opacity: 0, duration: 0.18 }, 0.62)
-        // Fully dark before the facets scene rises in, so its diagram enters over pure ink.
-        .fromTo("[data-hero-night]", { opacity: 0 }, { opacity: 1, duration: 0.2 }, 0.58);
-      // Let the facets scene rise over the last part of the dive (no black gap).
-      const facets = document.getElementById("facets");
-      if (facets) {
-        facets.dataset.overlap = "on";
-        ScrollTrigger.refresh();
-      }
+        .fromTo("[data-hero-flash]", { opacity: 0 }, { opacity: 0.9, duration: 0.22 }, 0.58)
+        .to("[data-hero-flash]", { opacity: 0, duration: 0.2 }, 0.8)
+        .fromTo("[data-hero-night]", { opacity: 0 }, { opacity: 1, duration: 0.25 }, 0.75)
+        // The facets diagram (which may extend above its scene) only appears once the dive has gone dark.
+        .fromTo("[data-facets-art]", { opacity: 0 }, { opacity: 1, duration: 0.12 }, 0.88);
     });
     return () => {
       cancel();
       tl?.scrollTrigger?.kill();
-      delete document.getElementById("facets")?.dataset.overlap;
       tl?.kill();
-      gsap.set(["[data-hero-photo]", "[data-hero-copy]", "[data-hero-cue]", "[data-hero-canvas]", "[data-hero-flash]", "[data-hero-night]"], { clearProps: "all" });
+      gsap.set(["[data-hero-photo]", "[data-hero-copy]", "[data-hero-cue]", "[data-hero-canvas]", "[data-hero-flash]", "[data-hero-night]", "[data-facets-art]"], { clearProps: "all" });
     };
   }, []);
 

@@ -522,11 +522,7 @@
   }
 }
 
-/* The facets scene slides up over the end of the hero dive. */
-#facets[data-overlap="on"] {
-  margin-top: -30svh;
-  background: linear-gradient(to bottom, transparent 0, transparent 30svh, var(--color-ink) 30svh);
-}
+
 
 .letter {
   animation: letter-in 1.1s var(--ease-out-expo) both;
