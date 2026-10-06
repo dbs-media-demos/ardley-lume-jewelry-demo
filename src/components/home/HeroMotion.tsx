@@ -82,7 +82,7 @@ export function HeroMotion() {
     // initial load: compiling the gem's shaders is a long task. Fallback after 10 s.
     const kick = () => {
       cleanupIdle();
-      cleanupIdle = whenIdle(() => void start(), 600);
+      void start();
     };
     const events = touch ? (["touchstart", "scroll"] as const) : (["pointermove", "scroll", "keydown", "pointerdown"] as const);
     const once = () => {
@@ -91,9 +91,12 @@ export function HeroMotion() {
       kick();
     };
     events.forEach((ev) => window.addEventListener(ev, once, { passive: true }));
+    // Fetch (but don't build) the 3D module after load, so the ring appears instantly on the first scroll.
+    const prefetch = window.setTimeout(() => whenIdle(() => void import("@/components/fx/RingScene"), 3000), touch ? 4000 : 2500);
     const fallback = window.setTimeout(once, touch ? 6000 : 10000);
     cleanupIdle = () => {
       window.clearTimeout(fallback);
+      window.clearTimeout(prefetch);
       events.forEach((ev) => window.removeEventListener(ev, once));
     };
 

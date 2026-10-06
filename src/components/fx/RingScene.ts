@@ -4,7 +4,8 @@ import * as THREE from "three";
  * The light hero: a procedural ring. A lathed comfort-fit band in a PBR gold,
  * four claws, and a faceted brilliant with physical transmission, dispersion and a
  * high IOR, lit by a room environment plus a point light that follows the cursor.
- * `setDive(p)` (0..1) flies the camera into the stone.
+ * `setDive(p)` (0..1) flies the camera into the stone, and every scroll step
+ * also spins the ring faster (the spin then eases back to a slow idle turn).
  */
 
 export type RingHandle = {
@@ -157,6 +158,11 @@ export function createRingScene(canvas: HTMLCanvasElement, opts: { lowPower: boo
   const pointer = { x: 0.3, y: -0.2, tx: 0.3, ty: -0.2 };
   let dive = 0;
   let visible = true;
+  // Spin: a steady idle turn plus a velocity that scrolling pumps up and that eases off on its own.
+  const IDLE_SPIN = 0.65; // rad/s
+  let angle = 0.5;
+  let spinVel = 0;
+  let prevNow = 0;
   let raf = 0;
   let last = 0;
   const frameMs = opts.lowPower ? 1000 / 30 : 0;
@@ -181,11 +187,14 @@ export function createRingScene(canvas: HTMLCanvasElement, opts: { lowPower: boo
     if (frameMs && now - last < frameMs) return;
     last = now;
     const t = (now - t0) / 1000;
+    const dt = prevNow ? Math.min(0.05, (now - prevNow) / 1000) : 0;
+    prevNow = now;
+    angle += (IDLE_SPIN + spinVel) * dt;
+    spinVel *= Math.pow(0.12, dt); // loses ~88% per second once scrolling stops
     pointer.x += (pointer.tx - pointer.x) * 0.05;
     pointer.y += (pointer.ty - pointer.y) * 0.05;
 
-    const spin = t * 0.22;
-    ring.rotation.y = 0.5 + spin * (1 - dive) + pointer.x * 0.35;
+    ring.rotation.y = angle + pointer.x * 0.35;
     ring.rotation.x = 0.3 + pointer.y * 0.18 - dive * 0.3;
     glow.position.set(pointer.x * 5, -pointer.y * 4 + 1.5, 4);
     gem.rotation.y = t * 0.15;
@@ -211,7 +220,10 @@ export function createRingScene(canvas: HTMLCanvasElement, opts: { lowPower: boo
       pointer.ty = y;
     },
     setDive(p) {
-      dive = Math.max(0, Math.min(1, p));
+      const next = Math.max(0, Math.min(1, p));
+      // Scrolling spins the ring: forward when diving in, backward when scrolling back up.
+      spinVel = Math.max(-16, Math.min(16, spinVel + (next - dive) * 38));
+      dive = next;
     },
     setVisible(v) {
       visible = v;
