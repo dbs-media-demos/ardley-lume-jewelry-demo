@@ -159,7 +159,7 @@ export function createRingScene(canvas: HTMLCanvasElement, opts: { lowPower: boo
   let dive = 0;
   let visible = true;
   // Spin: a steady idle turn plus a velocity that scrolling pumps up and that eases off on its own.
-  const IDLE_SPIN = 0.65; // rad/s
+  const IDLE_SPIN = 0.45; // rad/s
   let angle = 0.5;
   let spinVel = 0;
   let prevNow = 0;
@@ -190,7 +190,7 @@ export function createRingScene(canvas: HTMLCanvasElement, opts: { lowPower: boo
     const dt = prevNow ? Math.min(0.05, (now - prevNow) / 1000) : 0;
     prevNow = now;
     angle += (IDLE_SPIN + spinVel) * dt;
-    spinVel *= Math.pow(0.12, dt); // loses ~88% per second once scrolling stops
+    spinVel *= Math.pow(0.25, dt); // eases back to the idle turn over a second or two
     pointer.x += (pointer.tx - pointer.x) * 0.05;
     pointer.y += (pointer.ty - pointer.y) * 0.05;
 
@@ -222,7 +222,7 @@ export function createRingScene(canvas: HTMLCanvasElement, opts: { lowPower: boo
     setDive(p) {
       const next = Math.max(0, Math.min(1, p));
       // Scrolling spins the ring: forward when diving in, backward when scrolling back up.
-      spinVel = Math.max(-16, Math.min(16, spinVel + (next - dive) * 38));
+      spinVel = Math.max(-2.2, Math.min(2.2, spinVel + (next - dive) * 6));
       dive = next;
     },
     setVisible(v) {
