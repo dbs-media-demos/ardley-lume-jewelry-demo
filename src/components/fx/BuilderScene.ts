@@ -1,6 +1,8 @@
 import * as THREE from "three";
 import type { Shape } from "@/lib/builder";
 import type { Tone } from "@/lib/commerce/types";
+import { breathe } from "@/lib/three-gate";
+import { abandon, gpuRenderer, onTabChange, warmUp } from "./gpu";
 import { buildRing, METAL_COLOR, studio } from "./ring-kit";
 
 /*
@@ -8,15 +10,22 @@ import { buildRing, METAL_COLOR, studio } from "./ring-kit";
  * on an ivory surface in a pale studio. Two layers of shadow ground it: a soft
  * shadow-mapped one from the key light and a contact shadow right under the band.
  * Drag to turn it (with inertia); otherwise it turns slowly while on screen. Changing
- * the stone re-seats the head; changing the metal blends the colour. `still` draws
- * single frames for the phone images (scripts/ring-stills.mjs).
+ * the stone re-seats the head; changing the metal blends the colour. It resolves once
+ * warmed up (shaders and shadow passes compiled, one frame drawn unseen), or to null
+ * without a real graphics chip; frames run only while `setVisible(true)` and the tab is
+ * shown, and `onGap` hears each frame's gap in ms. If `proceed()` turns false during the
+ * warm-up (the page stuttered), it stops and resolves to null. `still` draws single frames
+ * for the phone images (scripts/ring-stills.mjs).
  */
 
 export type BuilderHandle = {
   set: (shape: Shape, tone: Tone) => void;
   setVisible: (v: boolean) => void;
   snapshot: (shape: Shape, tone: Tone) => string;
-  dispose: () => void;
+  /** Freezes on the current frame (before fading back to the still). */
+  stop: () => void;
+  /** `release` also gives the GPU context back (only when 3D is off for the visit). */
+  dispose: (release?: boolean) => void;
 };
 
 const BG = "#efe8dc"; // the card's bone colour
@@ -36,18 +45,27 @@ function contactTexture() {
   return t;
 }
 
-export function createBuilderScene(canvas: HTMLCanvasElement, initial: { shape: Shape; tone: Tone }, opts: { still?: boolean } = {}): BuilderHandle {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance", preserveDrawingBuffer: !!opts.still });
-  renderer.setPixelRatio(opts.still ? 2 : Math.min(window.devicePixelRatio, 1.75));
+export async function createBuilderScene(
+  canvas: HTMLCanvasElement,
+  initial: { shape: Shape; tone: Tone },
+  opts: { still?: boolean; onGap?: (ms: number) => void; proceed?: () => boolean } = {},
+): Promise<BuilderHandle | null> {
+  const go = () => !opts.proceed || opts.proceed();
+  const renderer = gpuRenderer(canvas, { still: opts.still });
+  if (!renderer) return null;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.0;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.VSMShadowMap;
 
+  await breathe();
+  if (!go()) return abandon(renderer);
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(BG);
-  const light = studio(renderer, "light");
+  const light = await studio(renderer, "light");
+  await breathe();
+  if (!go()) return abandon(renderer, light);
   scene.environment = light.env;
 
   const camera = new THREE.PerspectiveCamera(24, 1, 0.1, 100);
@@ -103,7 +121,8 @@ export function createBuilderScene(canvas: HTMLCanvasElement, initial: { shape: 
   let vel = 0;
   let dragging = false;
   let lastX = 0;
-  let visible = true;
+  let visible = false;
+  let stopped = false;
   let raf = 0;
   let prev = 0;
   let seat = 1; // 0..1, re-seat animation after a stone change
@@ -143,16 +162,26 @@ export function createBuilderScene(canvas: HTMLCanvasElement, initial: { shape: 
 
   const loop = (now: number) => {
     raf = 0;
-    if (!visible) {
+    if (!visible || stopped || document.hidden) {
       prev = 0;
       return;
     }
-    const dt = prev ? Math.min(0.05, (now - prev) / 1000) : 0;
+    const gap = prev ? now - prev : 0;
     prev = now;
-    pose(dt);
+    pose(Math.min(0.05, gap / 1000));
     renderer.render(scene, camera);
+    opts.onGap?.(gap);
     raf = requestAnimationFrame(loop);
   };
+  const kick = () => {
+    if (visible && !stopped && !raf && !opts.still && !document.hidden) raf = requestAnimationFrame(loop);
+  };
+  const offTab = onTabChange((hidden) => {
+    if (!hidden) return kick();
+    cancelAnimationFrame(raf);
+    raf = 0;
+    prev = 0;
+  });
 
   const onDown = (e: PointerEvent) => {
     dragging = true;
@@ -177,7 +206,6 @@ export function createBuilderScene(canvas: HTMLCanvasElement, initial: { shape: 
     canvas.addEventListener("pointermove", onMove);
     canvas.addEventListener("pointerup", onUp);
     canvas.addEventListener("pointercancel", onUp);
-    raf = requestAnimationFrame(loop);
   }
 
   const apply = (nextShape: Shape, nextTone: Tone, animate: boolean) => {
@@ -198,13 +226,18 @@ export function createBuilderScene(canvas: HTMLCanvasElement, initial: { shape: 
     }
   };
 
-  return {
+  await warmUp(renderer, scene, camera, () => {
+    pose(0);
+    renderer.render(scene, camera);
+  });
+
+  const handle: BuilderHandle = {
     set(nextShape, nextTone) {
       apply(nextShape, nextTone, true);
     },
     setVisible(v) {
       visible = v;
-      if (v && !raf && !opts.still) raf = requestAnimationFrame(loop);
+      kick();
     },
     snapshot(nextShape, nextTone) {
       apply(nextShape, nextTone, false);
@@ -215,8 +248,15 @@ export function createBuilderScene(canvas: HTMLCanvasElement, initial: { shape: 
       renderer.render(scene, camera);
       return canvas.toDataURL("image/png");
     },
-    dispose() {
+    stop() {
+      stopped = true;
       cancelAnimationFrame(raf);
+      raf = 0;
+    },
+    dispose(release) {
+      stopped = true;
+      cancelAnimationFrame(raf);
+      offTab();
       ro.disconnect();
       canvas.removeEventListener("pointerdown", onDown);
       canvas.removeEventListener("pointermove", onMove);
@@ -230,6 +270,13 @@ export function createBuilderScene(canvas: HTMLCanvasElement, initial: { shape: 
       contactTex.dispose();
       light.dispose();
       renderer.dispose();
+      // Only when 3D is off for the visit: on a plain unmount it would break StrictMode remounts.
+      if (release) renderer.forceContextLoss();
     },
   };
+  if (!go()) {
+    handle.dispose(true);
+    return null;
+  }
+  return handle;
 }

@@ -1,12 +1,17 @@
 import * as THREE from "three";
+import { breathe } from "@/lib/three-gate";
+import { abandon, gpuRenderer, onTabChange, warmUp } from "./gpu";
 import { buildRing, studio } from "./ring-kit";
 
 /*
  * The light hero: a procedural solitaire (see ring-kit) in a dark jeweller's light
  * box, with a warm point light that follows the cursor. `setDive(p)` (0..1) flies the
  * camera into the stone, and every scroll step also spins the ring faster (the spin
- * then eases back to a slow idle turn). Frames are only drawn while the hero is on
- * screen. `still: true` draws one frame at the opening pose (for the phone image).
+ * then eases back to a slow idle turn). It resolves once warmed up (shaders compiled,
+ * one frame drawn unseen), or to null without a real graphics chip. Frames are only
+ * drawn while `setVisible(true)` and the tab is shown; `onGap` hears each frame's gap
+ * in ms. If `proceed()` turns false during the warm-up (the page stuttered), it stops and
+ * resolves to null. `still: true` draws one frame at the opening pose (for the phone image).
  */
 
 export type RingHandle = {
@@ -14,18 +19,29 @@ export type RingHandle = {
   setDive: (p: number) => void;
   setVisible: (v: boolean) => void;
   snapshot: () => string;
-  dispose: () => void;
+  /** Freezes on the current frame (before fading back to the still). */
+  stop: () => void;
+  /** `release` also gives the GPU context back (only when 3D is off for the visit). */
+  dispose: (release?: boolean) => void;
 };
 
-export function createRingScene(canvas: HTMLCanvasElement, opts: { still?: boolean } = {}): RingHandle {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: "high-performance", preserveDrawingBuffer: !!opts.still });
-  renderer.setPixelRatio(opts.still ? 2 : Math.min(window.devicePixelRatio, 1.75));
+export async function createRingScene(
+  canvas: HTMLCanvasElement,
+  opts: { still?: boolean; onGap?: (ms: number) => void; proceed?: () => boolean } = {},
+): Promise<RingHandle | null> {
+  const go = () => !opts.proceed || opts.proceed();
+  const renderer = gpuRenderer(canvas, { alpha: true, still: opts.still });
+  if (!renderer) return null;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.05;
 
+  await breathe();
+  if (!go()) return abandon(renderer);
   const scene = new THREE.Scene();
-  const light = studio(renderer, "dark");
+  const light = await studio(renderer, "dark");
+  await breathe();
+  if (!go()) return abandon(renderer, light);
   scene.environment = light.env;
 
   const camera = new THREE.PerspectiveCamera(30, 1, 0.01, 100);
@@ -47,7 +63,8 @@ export function createRingScene(canvas: HTMLCanvasElement, opts: { still?: boole
 
   const pointer = { x: 0.3, y: -0.2, tx: 0.3, ty: -0.2 };
   let dive = 0;
-  let visible = true;
+  let visible = false;
+  let stopped = false;
   // Spin: a steady idle turn plus a velocity that scrolling pumps up and that eases off on its own.
   const IDLE_SPIN = 0.45; // rad/s
   let angle = 0.5;
@@ -99,17 +116,29 @@ export function createRingScene(canvas: HTMLCanvasElement, opts: { still?: boole
 
   const loop = (now: number) => {
     raf = 0;
-    if (!visible) {
+    if (!visible || stopped || document.hidden) {
       prevNow = 0;
       return;
     }
+    const gap = prevNow ? now - prevNow : 0;
     draw(now);
+    opts.onGap?.(gap);
     raf = requestAnimationFrame(loop);
   };
-  if (opts.still) draw(t0);
-  else raf = requestAnimationFrame(loop);
+  const kick = () => {
+    if (visible && !stopped && !raf && !opts.still && !document.hidden) raf = requestAnimationFrame(loop);
+  };
+  const offTab = onTabChange((hidden) => {
+    if (!hidden) return kick();
+    cancelAnimationFrame(raf);
+    raf = 0;
+    prevNow = 0;
+  });
 
-  return {
+  await warmUp(renderer, scene, camera, () => draw(t0));
+  prevNow = 0; // the first frame anyone sees starts the clock
+
+  const handle: RingHandle = {
     setPointer(x, y) {
       pointer.tx = x;
       pointer.ty = y;
@@ -122,19 +151,32 @@ export function createRingScene(canvas: HTMLCanvasElement, opts: { still?: boole
     },
     setVisible(v) {
       visible = v;
-      if (v && !raf && !opts.still) raf = requestAnimationFrame(loop);
+      kick();
     },
     snapshot() {
       draw(t0);
       return canvas.toDataURL("image/png");
     },
-    dispose() {
+    stop() {
+      stopped = true;
       cancelAnimationFrame(raf);
+      raf = 0;
+    },
+    dispose(release) {
+      stopped = true;
+      cancelAnimationFrame(raf);
+      offTab();
       ro.disconnect();
       kit.dispose();
       light.dispose();
-      // Never loseContext() here: it breaks StrictMode remounts.
       renderer.dispose();
+      // Only when 3D is off for the visit: on a plain unmount it would break StrictMode remounts.
+      if (release) renderer.forceContextLoss();
     },
   };
+  if (!go()) {
+    handle.dispose(true);
+    return null;
+  }
+  return handle;
 }

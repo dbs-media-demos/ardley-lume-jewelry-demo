@@ -7,6 +7,7 @@ import { buildPrice, SHAPES, type Shape } from "@/lib/builder";
 import { formatPrice } from "@/lib/commerce/pricing";
 import type { Tone, Metal } from "@/lib/commerce/types";
 import { afterLoad, canRun3D, prefersReducedMotion, tweenNumber } from "@/lib/motion";
+import { giveUp3D, inTurn, is3DOff, on3DOff, watchFrames, watchWarmUp } from "@/lib/three-gate";
 import { Reveal, SplitReveal } from "@/components/ui/Reveal";
 import type { BuilderHandle } from "@/components/fx/BuilderScene";
 
@@ -91,42 +92,67 @@ export function BuilderTeaser() {
     );
   }, [total]);
 
-  // Live 3D (desktop only): imported inside this effect once the stage nears the screen.
+  // Live 3D (desktop only): imported inside this effect and warmed up while the browser is
+  // idle after load, so it is ready before anyone scrolls here. Until then, and for good if
+  // a scene runs slow (lib/three-gate), the still stays.
   useEffect(() => {
     const still = new URLSearchParams(window.location.search).has("builderStill");
     const el = stage.current;
-    if (!el || (!still && !canRun3D())) return;
+    if (!el || (!still && (!canRun3D() || is3DOff()))) return;
     let dead = false;
-    let vis: IntersectionObserver | null = null;
+    let fade = 0;
+    const vis = new IntersectionObserver(([e]) => scene.current?.setVisible(e.isIntersecting));
     const start = async () => {
-      if (dead || scene.current || !canvas.current) return;
-      if (!document.createElement("canvas").getContext("webgl2")) return;
+      if (dead || scene.current || !canvas.current || (!still && is3DOff())) return;
+      performance.mark("3d:builder:start");
+      const watch = watchFrames((ok) => {
+        performance.mark(ok ? "3d:builder:smooth" : "3d:builder:slow");
+        if (!ok) giveUp3D();
+      });
       const { createBuilderScene } = await import("@/components/fx/BuilderScene");
       if (dead || !canvas.current) return;
-      scene.current = createBuilderScene(canvas.current, choice.current, { still });
+      // A warm-up that stutters means a processor too slow for live 3D: stop, keep the stills.
+      const warm = still ? null : watchWarmUp();
+      let handle: BuilderHandle | null = null;
+      try {
+        handle = await createBuilderScene(canvas.current, choice.current, { still, onGap: still ? undefined : watch, proceed: warm?.ok });
+        if (warm && !warm.ok()) {
+          handle?.dispose(true);
+          performance.mark("3d:builder:slow-warm-up");
+          return giveUp3D();
+        }
+      } finally {
+        warm?.stop();
+      }
+      if (!handle) return; // no real graphics chip: the stills stay
+      if (dead || (!still && is3DOff())) return handle.dispose();
+      scene.current = handle;
       if (still) {
-        window.__builderStill = (s, tn) => scene.current!.snapshot(s, tn);
+        window.__builderStill = (s, tn) => handle.snapshot(s, tn);
         return;
       }
-      vis = new IntersectionObserver(([e]) => scene.current?.setVisible(e.isIntersecting));
+      handle.set(choice.current.shape, choice.current.tone); // in case it changed while warming up
       vis.observe(el);
-      requestAnimationFrame(() => !dead && setLive(true));
+      performance.mark("3d:builder:ready");
+      setLive(true);
     };
-    let cancelLoad = () => {};
-    const near = new IntersectionObserver(
-      ([e]) => {
-        if (!e.isIntersecting) return;
-        near.disconnect();
-        cancelLoad = afterLoad(() => void start(), 600);
-      },
-      { rootMargin: still ? "100000px" : "600px 0px" },
-    );
-    near.observe(el);
+    const offSlow = on3DOff(() => {
+      const s = scene.current;
+      if (!s || still) return;
+      s.stop();
+      setLive(false);
+      fade = window.setTimeout(() => {
+        s.dispose(true);
+        if (scene.current === s) scene.current = null;
+      }, 1600);
+    });
+    const cancelLoad = afterLoad(() => void inTurn(start), 2000);
     return () => {
       dead = true;
-      near.disconnect();
       cancelLoad();
-      vis?.disconnect();
+      offSlow();
+      window.clearTimeout(fade);
+      vis.disconnect();
       scene.current?.dispose();
       scene.current = null;
       delete window.__builderStill;

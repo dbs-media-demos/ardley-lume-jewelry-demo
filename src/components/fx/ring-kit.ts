@@ -241,11 +241,46 @@ export function gemMeshes(geometry: THREE.BufferGeometry, cube: THREE.Texture) {
 }
 
 /**
+ * Compiles, in parallel and without blocking (KHR_parallel_shader_compile), the programs
+ * the light box is built with: the room's materials as drawn into a render target, and
+ * PMREM's own filter shaders (reached through its internals, which `fromScene` then reuses).
+ * Without this, those compile synchronously on first use: half a second of frozen page on
+ * a fast PC with a cold shader cache. If the internals ever change, it simply compiles less.
+ */
+async function precompile(renderer: THREE.WebGLRenderer, pmrem: THREE.PMREMGenerator, scenes: THREE.Scene[]) {
+  const probe = new THREE.Scene();
+  const internals = pmrem as unknown as {
+    _setSize?: (size: number) => void;
+    _allocateTargets?: () => THREE.WebGLRenderTarget;
+    _blurMaterial?: THREE.Material;
+    _ggxMaterial?: THREE.Material;
+    _lodMeshes?: THREE.Mesh[];
+  };
+  try {
+    internals._setSize?.(256); // fromScene's default size, so it reuses these targets and materials
+    internals._allocateTargets?.().dispose();
+    // Drawn on PMREM's own planes: the program depends on which attributes the geometry has.
+    const planes = internals._lodMeshes?.[0]?.geometry;
+    if (planes) for (const m of [internals._blurMaterial, internals._ggxMaterial]) if (m) probe.add(new THREE.Mesh(planes, m));
+  } catch {}
+  const target = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType });
+  const camera = new THREE.PerspectiveCamera();
+  const before = renderer.getRenderTarget();
+  renderer.setRenderTarget(target); // the variant drawn off screen: no tone mapping, linear output
+  const ready = Promise.all([probe, ...scenes].map((sc) => renderer.compileAsync(sc, camera)));
+  renderer.setRenderTarget(before);
+  await ready;
+  target.dispose();
+}
+
+/**
  * A jeweller's light box, as a prefiltered environment (metal reflections) plus a
  * cube map (what the stone refracts). "dark": black room, long softboxes (hero).
  * "light": a pale tent with a few dark flags, so metal reads bright on an ivory page (builder).
+ * Every shader this needs is compiled in parallel first (see `precompile`), so building it
+ * never freezes the page.
  */
-export function studio(renderer: THREE.WebGLRenderer, mood: "dark" | "light") {
+export async function studio(renderer: THREE.WebGLRenderer, mood: "dark" | "light") {
   const env = new THREE.Scene();
   const room = new THREE.Mesh(
     new THREE.SphereGeometry(20, 32, 16),
@@ -279,9 +314,6 @@ export function studio(renderer: THREE.WebGLRenderer, mood: "dark" | "light") {
     box(1.2, 1.2, 14, 0xffffff, [4, 7, 7]);
     box(1, 1, 12, 0xffffff, [-5, 6, 6]);
   }
-  const pmrem = new THREE.PMREMGenerator(renderer);
-  const rt = pmrem.fromScene(env, 0.02);
-  pmrem.dispose();
   // What the stone refracts: a dark tent studded with bright panels (a few warm, a few cool),
   // so every facet lands on either light or dark. That contrast is what reads as brilliance.
   const facets = new THREE.Scene();
@@ -297,6 +329,10 @@ export function studio(renderer: THREE.WebGLRenderer, mood: "dark" | "light") {
     m.lookAt(0, 0, 0);
     facets.add(m);
   }
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  await precompile(renderer, pmrem, [env, facets]);
+  const rt = pmrem.fromScene(env, 0.02);
+  pmrem.dispose();
   const cubeRT = new THREE.WebGLCubeRenderTarget(256, { type: THREE.HalfFloatType });
   cubeRT.texture.mapping = THREE.CubeRefractionMapping;
   new THREE.CubeCamera(0.1, 50, cubeRT).update(renderer, facets);
