@@ -7,7 +7,7 @@ import type { CardData } from "@/lib/card-types";
 import { ProductCard } from "./ProductCard";
 import { Sheet } from "@/components/ui/Sheet";
 import { applyFilters, activeCount, METAL_FACETS, parseFilters, PRICE_BANDS, SORTS, STONE_FACETS, toQuery, type Filters } from "@/lib/filters";
-import { gsap, loadFlip, prefersReducedMotion } from "@/lib/gsap";
+import { afterLoad, isDesktop, loadGsap, type GsapKit } from "@/lib/motion";
 import type { Flip as FlipType } from "gsap/Flip";
 
 type Props = {
@@ -37,6 +37,7 @@ export function Catalog({ cards, categories }: Props) {
   const grid = useRef<HTMLDivElement>(null);
   const flipState = useRef<ReturnType<typeof FlipType.getState> | null>(null);
   const Flip = useRef<typeof FlipType | null>(null);
+  const gsapRef = useRef<GsapKit["gsap"] | null>(null);
   const bar = useRef<HTMLDivElement>(null);
   const [condensed, setCondensed] = useState(false);
 
@@ -45,7 +46,14 @@ export function Catalog({ cards, categories }: Props) {
   const count = activeCount(filters);
 
   useEffect(() => {
-    loadFlip().then((F) => (Flip.current = F));
+    // Desktop only: on phones the grid simply reflows (no GSAP download).
+    if (!isDesktop()) return;
+    return afterLoad(() => {
+      void loadGsap().then(async (k) => {
+        Flip.current = await k.loadFlip();
+        gsapRef.current = k.gsap;
+      });
+    });
   }, []);
 
   // Sync filters → URL (no navigation, no server round trip).
@@ -66,7 +74,7 @@ export function Catalog({ cards, categories }: Props) {
 
   const update = (fn: (f: Filters) => Filters) => {
     const g = grid.current;
-    if (g && Flip.current && !prefersReducedMotion()) {
+    if (g && Flip.current) {
       flipState.current = Flip.current.getState(g.querySelectorAll("[data-flip]"));
     }
     setFilters((f) => fn(f));
@@ -76,7 +84,8 @@ export function Catalog({ cards, categories }: Props) {
     const st = flipState.current;
     const F = Flip.current;
     const g = grid.current;
-    if (!st || !F || !g) return;
+    const gsap = gsapRef.current;
+    if (!st || !F || !g || !gsap) return;
     flipState.current = null;
     F.from(st, {
       targets: g.querySelectorAll("[data-flip]"),

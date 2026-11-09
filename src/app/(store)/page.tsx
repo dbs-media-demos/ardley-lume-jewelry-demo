@@ -18,6 +18,7 @@ import { site } from "@/content/site";
 import { fromPrice } from "@/lib/commerce/pricing";
 import { workshopSteps } from "@/content/story";
 import { PageTransition } from "@/components/layout/PageTransition";
+import { Later } from "@/components/ui/Later";
 
 export const metadata: Metadata = buildMetadata({
   title: `${site.name} | Fine Jewelry & Engagement Rings, Dallas`,
@@ -52,16 +53,36 @@ export default async function HomePage() {
   return (
     <PageTransition>
       <HomeHero />
-      <Facets />
-      <Worlds worlds={worlds} />
-      <ThroughTheRing photo={pick(img("proposal"))} />
-      <BuilderTeaser />
-      <MetalMorph golds={golds} href="/product/lume-signet" />
-      <Bestsellers items={best} />
-      <Workshop steps={workshopSteps.map((s) => ({ ...s, img: pick(img(s.img)) }))} />
-      <GiftEdit items={(gifts?.products ?? []).map(toCard)} />
-      <ReviewsMarquee />
-      <VisitScene />
+      <Later id="facets">
+        <Facets />
+      </Later>
+      <Later id="worlds">
+        <Worlds worlds={worlds} />
+      </Later>
+      <Later id="reviews">
+        <ReviewsMarquee />
+      </Later>
+      <Later id="ring">
+        <ThroughTheRing photo={pick(img("proposal"))} />
+      </Later>
+      <Later id="builder">
+        <BuilderTeaser />
+      </Later>
+      <Later id="morph">
+        <MetalMorph golds={golds} href="/product/lume-signet" />
+      </Later>
+      <Later id="best">
+        <Bestsellers items={best} />
+      </Later>
+      <Later id="workshop">
+        <Workshop steps={workshopSteps.map((s) => ({ ...s, img: pick(img(s.img)) }))} />
+      </Later>
+      <Later id="gifts">
+        <GiftEdit items={(gifts?.products ?? []).map(toCard)} />
+      </Later>
+      <Later id="visit">
+        <VisitScene />
+      </Later>
     </PageTransition>
   );
 }

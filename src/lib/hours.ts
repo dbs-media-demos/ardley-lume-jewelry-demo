@@ -14,8 +14,11 @@ export const hoursRows = () =>
   });
 
 /** Status in Dallas time: "Open now · until 7 pm" or "Closed · opens Tue 11 am". */
+let dallas: Intl.DateTimeFormat | null = null;
+
 export function openStatus(now = new Date()) {
-  const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", weekday: "short", hour: "numeric", minute: "numeric", hourCycle: "h23" }).formatToParts(now);
+  dallas ??= new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", weekday: "short", hour: "numeric", minute: "numeric", hourCycle: "h23" });
+  const parts = dallas.formatToParts(now);
   const wd = parts.find((p) => p.type === "weekday")!.value;
   const day = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(wd);
   const mins = Number(parts.find((p) => p.type === "hour")!.value) * 60 + Number(parts.find((p) => p.type === "minute")!.value);

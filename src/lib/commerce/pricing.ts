@@ -1,5 +1,6 @@
 import type { CartExtras, CartLine, Metal, Product, ShippingMethod, StoneOrigin, Tone, Totals, Variant } from "./types";
 import { site } from "@/content/site";
+import { money } from "@/lib/money";
 
 /*
  * Pure pricing helpers. They run on the server (static pages, JSON-LD) and in the
@@ -154,10 +155,5 @@ export function computeTotals(lines: CartLine[], extras: CartExtras, opts: { shi
 }
 
 export function formatPrice(n: number, opts: { cents?: boolean } = {}) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: opts.cents ? 2 : 0,
-    maximumFractionDigits: opts.cents ? 2 : 0,
-  }).format(n);
+  return money(n, opts.cents);
 }

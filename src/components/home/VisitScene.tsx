@@ -12,9 +12,9 @@ import { hoursRows } from "@/lib/hours";
 export function VisitScene() {
   const room = img("showroom");
   return (
-    <section data-dark className="relative overflow-hidden bg-oxblood py-24 text-ivory md:py-32" aria-labelledby="visit-title">
-      <div className="wrap grid gap-14 lg:grid-cols-[1.05fr_1fr] lg:items-center">
-        <Parallax className="aspect-[4/5] rounded-[1.6rem] md:aspect-[5/4] lg:aspect-[4/5]" amount={14}>
+    <section data-dark className="relative overflow-hidden bg-oxblood py-16 text-ivory md:py-32" aria-labelledby="visit-title">
+      <div className="wrap grid gap-10 lg:grid-cols-[1.05fr_1fr] lg:items-center lg:gap-14">
+        <Parallax className="aspect-[3/2] rounded-[1.6rem] md:aspect-[5/4] lg:aspect-[4/5]" amount={14}>
           <div className="absolute inset-0">
             <Image src={room.src} alt={room.alt} fill sizes="(min-width:1024px) 46vw, 92vw" quality={75} className="object-cover" placeholder="blur" blurDataURL={room.blur} />
           </div>
@@ -58,7 +58,8 @@ export function VisitScene() {
               Call {site.phone}
             </a>
           </div>
-          <AreaMap className="mt-10 max-w-lg" />
+          {/* The sketch map is a desktop extra; phones have the address and directions link right above. */}
+          <AreaMap className="mt-10 max-w-lg max-lg:hidden" />
         </div>
       </div>
     </section>

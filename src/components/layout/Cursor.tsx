@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { gsap, isTouch, prefersReducedMotion } from "@/lib/gsap";
+import { isDesktop, loadGsap } from "@/lib/motion";
 
 /**
  * A fine gold ring that follows the mouse. Over products (`data-cursor="View"`) and
@@ -14,7 +14,7 @@ export function Cursor() {
   const [enabled, setEnabled] = useState(false);
 
   useEffect(() => {
-    if (isTouch() || prefersReducedMotion()) return;
+    if (!isDesktop()) return;
     const id = window.setTimeout(() => setEnabled(true), 1500);
     return () => window.clearTimeout(id);
   }, []);
@@ -22,8 +22,12 @@ export function Cursor() {
   useEffect(() => {
     const el = ring.current;
     if (!enabled || !el) return;
-    const xTo = gsap.quickTo(el, "x", { duration: 0.55, ease: "power3.out" });
-    const yTo = gsap.quickTo(el, "y", { duration: 0.55, ease: "power3.out" });
+    let xTo: (v: number) => unknown = () => {};
+    let yTo: (v: number) => unknown = () => {};
+    void loadGsap().then(({ gsap }) => {
+      xTo = gsap.quickTo(el, "x", { duration: 0.55, ease: "power3.out" });
+      yTo = gsap.quickTo(el, "y", { duration: 0.55, ease: "power3.out" });
+    });
     let current = "";
     const move = (e: PointerEvent) => {
       xTo(e.clientX);

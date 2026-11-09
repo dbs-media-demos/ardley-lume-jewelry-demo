@@ -24,5 +24,8 @@ A real store replaces the two mock exports with a Shopify Storefront API catalog
 ## Images
 `scripts/process-images.mjs` turns raw downloads (git-ignored) into graded 4:5 product shots, recoloured metal-tone variants and `src/content/images.ts` (with blur placeholders). Credits: `public/images/SOURCES.md`.
 
+## 3D, phones and checks
+See "3D and phones" in `DEMO.md`. Scripts (run against the production build): `with-server.mjs`, `ring-stills.mjs`, `phone-budget.mjs`, `phone-trace.mjs`, `section-heights.mjs`, `shots.mjs`.
+
 ## Flags
 `NEXT_PUBLIC_NOINDEX` — anything but `"false"` keeps the demo out of search engines (default).

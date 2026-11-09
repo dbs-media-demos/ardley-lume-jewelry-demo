@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useRef } from "react";
-import { gsap, useGSAP, prefersReducedMotion, whenIdle } from "@/lib/gsap";
+import { useDesktopScene } from "@/lib/motion";
 import type { CardImg } from "@/lib/card-types";
 import { Magnetic } from "@/components/ui/Magnetic";
 
@@ -11,81 +11,71 @@ import { Magnetic } from "@/components/ui/Magnetic";
  * Scene 4: a giant "forever" whose o is a gold ring. Scrolling flies the camera
  * through the ring: the ivory panel scales around the ring's centre while a
  * mask hole (exactly the ring's opening) grows to fill the screen, revealing the
- * engagement scene behind it. Without motion it's simply two stacked sections.
+ * engagement scene behind it (desktop). Phones and reduced motion: two stacked sections.
  */
 export function ThroughTheRing({ photo }: { photo: CardImg }) {
   const root = useRef<HTMLDivElement>(null);
 
-  useGSAP(
-    () => {
-      const el = root.current;
-      if (!el || prefersReducedMotion()) return;
-      const panel = el.querySelector<HTMLElement>("[data-panel]")!;
-      const ring = el.querySelector<HTMLElement>("[data-ring]")!;
-      const scene = el.querySelector<HTMLElement>("[data-scene]")!;
+  useDesktopScene(root, ({ gsap }, el) => {
+    const panel = el.querySelector<HTMLElement>("[data-panel]")!;
+    const ring = el.querySelector<HTMLElement>("[data-ring]")!;
+    const scene = el.querySelector<HTMLElement>("[data-scene]")!;
 
-      const measure = () => {
-        const p = panel.getBoundingClientRect();
-        const r = ring.getBoundingClientRect();
-        const cx = r.left - p.left + r.width / 2;
-        const cy = r.top - p.top + r.height / 2;
-        const inner = (r.width / 2) * 0.72;
-        panel.style.setProperty("--cx", `${cx}px`);
-        panel.style.setProperty("--cy", `${cy}px`);
-        panel.style.setProperty("--r", `${inner}px`);
-        panel.style.transformOrigin = `${cx}px ${cy}px`;
-        // Scale needed for the hole to cover the farthest corner.
-        const far = Math.max(Math.hypot(cx, cy), Math.hypot(p.width - cx, cy), Math.hypot(cx, p.height - cy), Math.hypot(p.width - cx, p.height - cy));
-        return (far / inner) * 1.08;
-      };
+    const measure = () => {
+      const p = panel.getBoundingClientRect();
+      const r = ring.getBoundingClientRect();
+      const cx = r.left - p.left + r.width / 2;
+      const cy = r.top - p.top + r.height / 2;
+      const inner = (r.width / 2) * 0.72;
+      panel.style.setProperty("--cx", `${cx}px`);
+      panel.style.setProperty("--cy", `${cy}px`);
+      panel.style.setProperty("--r", `${inner}px`);
+      panel.style.transformOrigin = `${cx}px ${cy}px`;
+      // Scale needed for the hole to cover the farthest corner.
+      const far = Math.max(Math.hypot(cx, cy), Math.hypot(p.width - cx, cy), Math.hypot(cx, p.height - cy), Math.hypot(p.width - cx, p.height - cy));
+      return (far / inner) * 1.08;
+    };
 
-      return whenIdle(() => {
-        gsap.set(panel, { position: "absolute", inset: 0, zIndex: 2 });
-        el.dataset.mode = "fly";
-        // While the ivory panel covers the scene the header must stay dark-on-light.
-        scene.removeAttribute("data-dark");
-        let maxScale = measure();
-        const tl = gsap.timeline({
-          defaults: { ease: "none" },
-          scrollTrigger: {
-            trigger: el,
-            start: "top top",
-            end: "+=170%",
-            pin: true,
-            scrub: 0.7,
-            invalidateOnRefresh: true,
-            onUpdate: (st) => el.toggleAttribute("data-dark", st.progress > 0.62),
-            onLeave: () => el.setAttribute("data-dark", ""),
-            onRefreshInit: () => {
-              gsap.set(panel, { scale: 1 });
-              maxScale = measure();
-            },
-          },
-        });
-        tl.to("[data-ring-copy]", { opacity: 0, y: -30, duration: 0.15 }, 0)
-          .to(panel, { scale: () => maxScale, duration: 0.7, ease: "power2.in" }, 0.05)
-          .set(panel, { autoAlpha: 0 }, 0.76)
-          .fromTo("[data-scene-img]", { scale: 1.35 }, { scale: 1, duration: 0.8 }, 0.05)
-          .fromTo(scene.querySelectorAll("[data-scene-copy] > *"), { y: 50, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.04, duration: 0.2 }, 0.72);
-        return () => {
-          tl.scrollTrigger?.kill();
-          tl.kill();
-          gsap.set([panel, "[data-scene-img]", "[data-ring-copy]"], { clearProps: "all" });
-          delete el.dataset.mode;
-          el.removeAttribute("data-dark");
-          scene.setAttribute("data-dark", "");
-        };
-      }, 1200, el);
-    },
-    { scope: root },
-  );
+    gsap.set(panel, { position: "absolute", inset: 0, zIndex: 2 });
+    el.dataset.mode = "fly";
+    // While the ivory panel covers the scene the header must stay dark-on-light.
+    scene.removeAttribute("data-dark");
+    let maxScale = measure();
+    const tl = gsap.timeline({
+      defaults: { ease: "none" },
+      scrollTrigger: {
+        trigger: el,
+        start: "top top",
+        end: "+=170%",
+        pin: true,
+        scrub: 0.7,
+        invalidateOnRefresh: true,
+        onUpdate: (st) => el.toggleAttribute("data-dark", st.progress > 0.62),
+        onLeave: () => el.setAttribute("data-dark", ""),
+        onRefreshInit: () => {
+          gsap.set(panel, { scale: 1 });
+          maxScale = measure();
+        },
+      },
+    });
+    tl.to("[data-ring-copy]", { opacity: 0, y: -30, duration: 0.15 }, 0)
+      .to(panel, { scale: () => maxScale, duration: 0.7, ease: "power2.in" }, 0.05)
+      .set(panel, { autoAlpha: 0 }, 0.76)
+      .fromTo("[data-scene-img]", { scale: 1.35 }, { scale: 1, duration: 0.8 }, 0.05)
+      .fromTo(scene.querySelectorAll("[data-scene-copy] > *"), { y: 50, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.04, duration: 0.2 }, 0.72);
+    return () => {
+      delete el.dataset.mode;
+      el.removeAttribute("data-dark");
+      scene.setAttribute("data-dark", "");
+    };
+  });
 
   return (
     <div ref={root} className="group/fly relative overflow-hidden">
       <section
         data-panel
         aria-labelledby="forever-title"
-        className="relative flex h-[100svh] flex-col items-center justify-center bg-ivory px-5 text-center text-ink"
+        className="relative flex flex-col items-center justify-center bg-ivory px-5 py-16 text-center text-ink lg:h-[100svh] lg:py-0"
       >
         <p data-ring-copy className="eyebrow text-gold-ink">
           Engagement &amp; bridal
@@ -112,16 +102,16 @@ export function ThroughTheRing({ photo }: { photo: CardImg }) {
           </span>
         </h2>
         <p data-ring-copy className="mt-8 max-w-md text-taupe">
-          Engagement rings, made around one stone: yours. Scroll through the ring.
+          Engagement rings, made around one stone: yours.<span className="max-lg:hidden"> Scroll through the ring.</span>
         </p>
       </section>
 
-      <section data-scene data-dark className="relative h-[100svh] overflow-hidden bg-ink text-ivory" aria-label="Engagement rings">
+      <section data-scene data-dark className="relative overflow-hidden bg-ink pt-32 pb-12 text-ivory lg:h-[100svh] lg:py-0" aria-label="Engagement rings">
         <div data-scene-img className="absolute inset-0">
           <Image src={photo.src} alt={photo.alt} fill sizes="100vw" quality={75} className="object-cover" placeholder="blur" blurDataURL={photo.blur} />
         </div>
-        <div className="absolute inset-0 bg-gradient-to-r from-ink/85 via-ink/40 to-transparent" />
-        <div data-scene-copy className="wrap relative flex h-full flex-col justify-center">
+        <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/45 to-ink/10 lg:bg-gradient-to-r lg:from-ink/85 lg:via-ink/40 lg:to-transparent" />
+        <div data-scene-copy className="wrap relative flex h-full flex-col justify-end lg:justify-center">
           <p className="eyebrow text-gold-pale">The proposal, handled</p>
           <p className="mt-4 max-w-2xl font-display text-[clamp(2.6rem,6vw,5.6rem)] leading-[0.95]">One stone. Chosen by eye, set by hand.</p>
           <p className="mt-6 max-w-md text-ivory/85">

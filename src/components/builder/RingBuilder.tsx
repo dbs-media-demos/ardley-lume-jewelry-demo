@@ -7,7 +7,7 @@ import { RingPreview } from "./RingPreview";
 import { BUILDER_METALS, buildPrice, CARATS, defaultBuild, SETTINGS, SHAPES, type Build, type Setting, type Shape } from "@/lib/builder";
 import { formatPrice, metalLabel, metalSwatch, metalTone, RING_SIZES } from "@/lib/commerce/pricing";
 import type { Metal, StoneOrigin } from "@/lib/commerce/types";
-import { gsap, prefersReducedMotion } from "@/lib/gsap";
+import { prefersReducedMotion, tweenNumber } from "@/lib/motion";
 import { addToCart } from "@/lib/add-to-cart";
 
 /** Representative photos per setting for the bag line. */
@@ -29,21 +29,13 @@ function AnimatedPrice({ value, className }: { value: number; className?: string
       shown.current = value;
       return;
     }
-    const o = { v: shown.current };
-    const tw = gsap.to(o, {
-      v: value,
-      duration: 0.9,
-      ease: "expo.out",
-      onUpdate: () => {
-        el.textContent = formatPrice(Math.round(o.v / 5) * 5);
-      },
-      onComplete: () => {
-        shown.current = value;
-      },
-    });
-    return () => {
-      tw.kill();
-    };
+    return tweenNumber(
+      shown.current,
+      value,
+      900,
+      (v) => (el.textContent = formatPrice(Math.round(v / 5) * 5)),
+      () => (shown.current = value),
+    );
   }, [value]);
   return (
     <span ref={ref} className={className} aria-hidden>

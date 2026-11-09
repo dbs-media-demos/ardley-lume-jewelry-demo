@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import { gsap, useGSAP, prefersReducedMotion, whenIdle } from "@/lib/gsap";
+import { useDesktopScene } from "@/lib/motion";
 import { Counter } from "@/components/ui/Counter";
 
 /* Round-brilliant crown, seen from above: table, stars, kites, upper girdles. */
@@ -22,39 +22,32 @@ for (let i = 0; i < 8; i++) {
 }
 const table = T.map(pt).join(" ");
 
-/** Scene 2: the stone's architecture draws itself while the manifesto scrubs in. */
+/** Scene 2: the stone's architecture draws itself while the manifesto scrubs in (desktop). Phones: the finished diagram behind the same words. */
 export function Facets() {
   const root = useRef<HTMLElement>(null);
 
-  useGSAP(
-    () => {
-      const el = root.current;
-      if (!el || prefersReducedMotion()) return;
-      return whenIdle(() => {
-        const lines = el.querySelectorAll<SVGGeometryElement>("[data-line]");
-        lines.forEach((l) => {
-          const len = l.getTotalLength();
-          gsap.set(l, { strokeDasharray: len, strokeDashoffset: len });
-        });
-        const tl = gsap.timeline({ scrollTrigger: { trigger: el, start: "top 85%", end: "bottom bottom", scrub: 0.8 } });
-        tl.to(lines, { strokeDashoffset: 0, stagger: 0.004, duration: 0.5, ease: "none" }, 0)
-          .fromTo("[data-diagram]", { scale: 1.9, rotate: -24 }, { scale: 1, rotate: 0, duration: 1, ease: "none" }, 0)
-          .fromTo("[data-sweep]", { rotate: 0 }, { rotate: 300, duration: 1, ease: "none" }, 0);
-        const words = el.querySelectorAll("[data-w]");
-        gsap.fromTo(words, { opacity: 0.42 }, { opacity: 1, stagger: 0.08, ease: "none", scrollTrigger: { trigger: "[data-manifesto]", start: "top 75%", end: "bottom 40%", scrub: 0.6 } });
-      }, 1200, el);
-    },
-    { scope: root },
-  );
+  useDesktopScene(root, ({ gsap }, el) => {
+    const lines = el.querySelectorAll<SVGGeometryElement>("[data-line]");
+    lines.forEach((l) => {
+      const len = l.getTotalLength();
+      gsap.set(l, { strokeDasharray: len, strokeDashoffset: len });
+    });
+    const tl = gsap.timeline({ scrollTrigger: { trigger: el, start: "top 85%", end: "bottom bottom", scrub: 0.8 } });
+    tl.to(lines, { strokeDashoffset: 0, stagger: 0.004, duration: 0.5, ease: "none" }, 0)
+      .fromTo("[data-diagram]", { scale: 1.9, rotate: -24 }, { scale: 1, rotate: 0, duration: 1, ease: "none" }, 0)
+      .fromTo("[data-sweep]", { rotate: 0 }, { rotate: 300, duration: 1, ease: "none" }, 0);
+    const words = el.querySelectorAll("[data-w]");
+    gsap.fromTo(words, { opacity: 0.42 }, { opacity: 1, stagger: 0.08, ease: "none", scrollTrigger: { trigger: "[data-manifesto]", start: "top 75%", end: "bottom 40%", scrub: 0.6 } });
+  });
 
   const text = "Every piece begins as a question of light: how it enters a stone, how it leaves, and how it finally lands on you.";
 
   return (
     <section ref={root} id="facets" data-dark className="relative z-[6] bg-ink text-ivory" aria-labelledby="facets-title">
       {/* Clip sideways only: as this scene enters right after the dive, the big diagram extends above its top edge over the dark hero. */}
-      <div className="sticky top-0 h-[100svh] overflow-x-clip">
-        <div data-facets-art className="absolute inset-0 grid place-items-center">
-          <svg data-diagram viewBox="0 0 1000 1000" className="w-[150vw] max-w-none opacity-80 md:w-[min(92vh,80vw)]" aria-hidden>
+      <div className="absolute inset-x-0 top-0 h-[28rem] overflow-hidden lg:sticky lg:h-[100svh] lg:overflow-x-clip lg:overflow-y-visible">
+        <div data-facets-art className="absolute inset-0 grid place-items-center max-lg:-top-16 max-lg:place-items-start max-lg:justify-center">
+          <svg data-diagram viewBox="0 0 1000 1000" className="w-[140vw] max-w-none opacity-45 md:w-[min(92vh,80vw)] lg:opacity-80" aria-hidden>
             <defs>
               <radialGradient id="facet-glow" cx="50%" cy="50%" r="50%">
                 <stop offset="0%" stopColor="#e8d6a8" stopOpacity="0.32" />
@@ -91,13 +84,13 @@ export function Facets() {
         <div className="absolute inset-0 bg-[radial-gradient(60%_50%_at_50%_50%,rgb(14_19_17/0.55),transparent)]" aria-hidden />
       </div>
 
-      <div className="relative -mt-[100svh] flex min-h-[200svh] flex-col justify-center">
-        <div className="wrap grid min-h-[100svh] place-items-center text-center">
+      <div className="relative flex flex-col justify-center lg:-mt-[100svh] lg:min-h-[200svh]">
+        <div className="wrap grid min-h-[26rem] place-items-center pt-20 pb-12 text-center lg:min-h-[100svh] lg:py-0">
           <div data-manifesto className="max-w-4xl">
             <p className="eyebrow text-gold-pale" id="facets-title">
               The Ardley &amp; Lume way
             </p>
-            <p className="mt-6 font-display text-[clamp(2rem,4.6vw,4.4rem)] leading-[1.08]">
+            <p className="mt-5 font-display text-[clamp(1.85rem,4.6vw,4.4rem)] leading-[1.08] lg:mt-6">
               {text.split(" ").map((w, i) => (
                 <span key={i} data-w>
                   {w}{" "}
@@ -106,15 +99,15 @@ export function Facets() {
             </p>
           </div>
         </div>
-        <div className="wrap grid gap-px overflow-hidden pb-24 sm:grid-cols-3">
+        <div className="wrap grid gap-px overflow-hidden pb-16 sm:grid-cols-3 lg:pb-24">
           {[
             { v: 2014, label: "At the bench in Dallas since", plain: true },
             { v: 100, suffix: "%", label: "Recycled gold, certified" },
             { v: 4200, suffix: "+", label: "Pieces made by hand" },
           ].map((s) => (
-            <div key={s.label} className="border-t border-ivory/15 px-1 py-7 text-left sm:px-6">
+            <div key={s.label} className="flex items-baseline justify-between gap-4 border-t border-ivory/15 px-1 py-5 text-left sm:block sm:px-6 sm:py-7">
               <p className="spec text-mist">{s.label}</p>
-              <p className="mt-3 font-display text-6xl text-gold">{s.plain ? s.v : <Counter value={s.v} suffix={s.suffix} />}</p>
+              <p className="shrink-0 font-display text-5xl text-gold sm:mt-3 sm:text-6xl">{s.plain ? s.v : <Counter value={s.v} suffix={s.suffix} />}</p>
             </div>
           ))}
         </div>

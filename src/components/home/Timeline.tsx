@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRef } from "react";
-import { gsap, useGSAP, isTouch, prefersReducedMotion, whenIdle } from "@/lib/gsap";
+import { useDesktopScene } from "@/lib/motion";
 import type { CardImg } from "@/lib/card-types";
 
 export type Moment = { year: string; title: string; body: string; img: CardImg };
@@ -12,26 +12,20 @@ export function Timeline({ moments }: { moments: Moment[] }) {
   const root = useRef<HTMLElement>(null);
   const track = useRef<HTMLOListElement>(null);
 
-  useGSAP(
-    () => {
-      const el = root.current;
-      const tr = track.current;
-      if (!el || !tr || prefersReducedMotion() || isTouch() || window.innerWidth < 1024) return;
-      return whenIdle(
-        () => {
-          const dist = () => tr.scrollWidth - window.innerWidth + 80;
-          const tween = gsap.to(tr, { x: () => -dist(), ease: "none", scrollTrigger: { trigger: el, start: "top top", end: () => `+=${dist()}`, pin: true, scrub: 0.7, invalidateOnRefresh: true } });
-          gsap.to("[data-tl-line]", { scaleX: 1, ease: "none", scrollTrigger: { trigger: el, start: "top top", end: () => `+=${dist()}`, scrub: true } });
-          tr.querySelectorAll<HTMLElement>("[data-tl-img]").forEach((im) => {
-            gsap.fromTo(im, { scale: 1.25 }, { scale: 1, ease: "none", scrollTrigger: { trigger: im, containerAnimation: tween, start: "left right", end: "right 60%", scrub: true } });
-          });
-        },
-        1200,
-        el,
-      );
-    },
-    { scope: root },
-  );
+  useDesktopScene(root, ({ gsap }, el) => {
+    const tr = track.current;
+    if (!tr) return;
+    el.dataset.mode = "pin";
+    const dist = () => tr.scrollWidth - window.innerWidth + 80;
+    const tween = gsap.to(tr, { x: () => -dist(), ease: "none", scrollTrigger: { trigger: el, start: "top top", end: () => `+=${dist()}`, pin: true, scrub: 0.7, invalidateOnRefresh: true } });
+    gsap.to("[data-tl-line]", { scaleX: 1, ease: "none", scrollTrigger: { trigger: el, start: "top top", end: () => `+=${dist()}`, scrub: true } });
+    tr.querySelectorAll<HTMLElement>("[data-tl-img]").forEach((im) => {
+      gsap.fromTo(im, { scale: 1.25 }, { scale: 1, ease: "none", scrollTrigger: { trigger: im, containerAnimation: tween, start: "left right", end: "right 60%", scrub: true } });
+    });
+    return () => {
+      delete el.dataset.mode;
+    };
+  });
 
   return (
     <section ref={root} data-dark className="relative overflow-hidden bg-ink py-20 text-ivory lg:flex lg:h-[100svh] lg:flex-col lg:justify-center lg:py-0" aria-labelledby="timeline-title">
@@ -41,7 +35,7 @@ export function Timeline({ moments }: { moments: Moment[] }) {
           The long way round
         </h2>
       </div>
-      <div className="no-scrollbar mt-10 overflow-x-auto lg:overflow-visible" data-cursor="Drag">
+      <div className="no-scrollbar mt-10 overflow-x-auto in-data-[mode=pin]:overflow-visible" data-cursor="Drag">
         <ol ref={track} className="relative flex w-max gap-6 px-5 md:px-10">
           <span aria-hidden className="absolute top-[5.4rem] right-10 left-10 h-px bg-ivory/15">
             <span data-tl-line className="block h-px origin-left scale-x-0 bg-gold" />

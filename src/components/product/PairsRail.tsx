@@ -3,27 +3,16 @@
 import { useRef } from "react";
 import type { CardData } from "@/lib/card-types";
 import { ProductCard } from "@/components/shop/ProductCard";
-import { gsap, useGSAP, prefersReducedMotion, whenIdle } from "@/lib/gsap";
+import { useDesktopScene } from "@/lib/motion";
 
 /** "Pairs well with": cards drift at different speeds as the rail scrolls past (parallax). */
 export function PairsRail({ items, title }: { items: CardData[]; title: string }) {
   const root = useRef<HTMLElement>(null);
-  useGSAP(
-    () => {
-      const el = root.current;
-      if (!el || prefersReducedMotion() || window.innerWidth < 768) return;
-      return whenIdle(
-        () => {
-          el.querySelectorAll<HTMLElement>("[data-par]").forEach((c, i) => {
-            gsap.fromTo(c, { y: 60 + i * 40 }, { y: -20 - i * 25, ease: "none", scrollTrigger: { trigger: el, start: "top bottom", end: "bottom top", scrub: true } });
-          });
-        },
-        1200,
-        el,
-      );
-    },
-    { scope: root },
-  );
+  useDesktopScene(root, ({ gsap }, el) => {
+    el.querySelectorAll<HTMLElement>("[data-par]").forEach((c, i) => {
+      gsap.fromTo(c, { y: 60 + i * 40 }, { y: -20 - i * 25, ease: "none", scrollTrigger: { trigger: el, start: "top bottom", end: "bottom top", scrub: true } });
+    });
+  });
   if (!items.length) return null;
   return (
     <section ref={root} className="overflow-hidden py-20" aria-labelledby="pairs-title">

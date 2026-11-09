@@ -1,23 +1,32 @@
 "use client";
 
-import { useRef } from "react";
-import { gsap, ScrollTrigger, useGSAP, prefersReducedMotion } from "@/lib/gsap";
+import { useEffect, useRef } from "react";
+import { isDesktop, tweenNumber } from "@/lib/motion";
 
-/** Number that counts up when it enters the viewport. The final value is server-rendered. */
+const group = (n: number, decimals: number) => {
+  const [w, d] = n.toFixed(decimals).split(".");
+  return w.replace(/\B(?=(\d{3})+(?!\d))/g, ",") + (d ? `.${d}` : "");
+};
+
+/** Number that counts up when it enters the viewport (desktop). The final value is server-rendered. */
 export function Counter({ value, prefix = "", suffix = "", decimals = 0, className }: { value: number; prefix?: string; suffix?: string; decimals?: number; className?: string }) {
   const ref = useRef<HTMLSpanElement>(null);
-  const fmt = (n: number) => prefix + n.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals }) + suffix;
-  useGSAP(() => {
+  const fmt = (n: number) => prefix + group(n, decimals) + suffix;
+  useEffect(() => {
     const el = ref.current;
-    if (!el || prefersReducedMotion()) return;
-    const obj = { n: 0 };
-    ScrollTrigger.create({
-      trigger: el,
-      start: "top 88%",
-      once: true,
-      onEnter: () => gsap.to(obj, { n: value, duration: 2.2, ease: "expo.out", onUpdate: () => (el.textContent = fmt(obj.n)) }),
-    });
-  });
+    if (!el || !isDesktop() || el.getBoundingClientRect().top < window.innerHeight) return;
+    let stop = () => {};
+    const io = new IntersectionObserver(([e]) => {
+      if (!e.isIntersecting) return;
+      io.disconnect();
+      stop = tweenNumber(0, value, 2200, (v) => (el.textContent = prefix + group(v, decimals) + suffix));
+    }, { rootMargin: "0px 0px -12% 0px" });
+    io.observe(el);
+    return () => {
+      io.disconnect();
+      stop();
+    };
+  }, [value, prefix, suffix, decimals]);
   return (
     <span ref={ref} className={className}>
       {fmt(value)}

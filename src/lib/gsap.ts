@@ -1,20 +1,15 @@
 "use client";
 
+/* GSAP itself. Only ever reached through `loadGsap()` in lib/motion (a dynamic import), so phones never download it. */
+
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useGSAP } from "@gsap/react";
 
 if (typeof window !== "undefined") {
-  gsap.registerPlugin(ScrollTrigger, useGSAP);
+  gsap.registerPlugin(ScrollTrigger);
   // Jewelry moves like light: long, soft, never bouncy.
   gsap.defaults({ ease: "expo.out", duration: 1.2 });
 }
-
-export const prefersReducedMotion = () =>
-  typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-export const isTouch = () =>
-  typeof window !== "undefined" && window.matchMedia("(hover: none), (pointer: coarse)").matches;
 
 /** Below-the-fold plugins are fetched on first use to keep the first load lean. */
 export const loadSplitText = () =>
@@ -50,32 +45,4 @@ export function scheduleRefresh() {
   }, 120);
 }
 
-/** Run a setup when the browser is idle (or after `timeout`), so scroll scenes never compete with first paint. */
-export function whenIdle(fn: () => void | (() => void), timeout = 1200, scope?: Element | null) {
-  if (typeof window === "undefined") return () => {};
-  let cleanup: void | (() => void);
-  let ctx: gsap.Context | null = null;
-  const run = () => {
-    // Own context, so every tween/ScrollTrigger made here is reverted on unmount.
-    ctx = gsap.context(() => {
-      cleanup = fn();
-    }, scope ?? undefined);
-    scheduleRefresh();
-  };
-  const w = window as Window & { requestIdleCallback?: typeof requestIdleCallback; cancelIdleCallback?: typeof cancelIdleCallback };
-  let cancel: () => void;
-  if (w.requestIdleCallback) {
-    const id = w.requestIdleCallback(run, { timeout });
-    cancel = () => w.cancelIdleCallback?.(id);
-  } else {
-    const id = window.setTimeout(run, 200);
-    cancel = () => window.clearTimeout(id);
-  }
-  return () => {
-    cancel();
-    if (typeof cleanup === "function") cleanup();
-    ctx?.revert();
-  };
-}
-
-export { gsap, ScrollTrigger, useGSAP };
+export { gsap, ScrollTrigger };

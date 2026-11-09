@@ -2,8 +2,7 @@
 
 import Image from "next/image";
 import { useRef } from "react";
-import clsx from "clsx";
-import { gsap, useGSAP, prefersReducedMotion, whenIdle } from "@/lib/gsap";
+import { useDesktopScene } from "@/lib/motion";
 import type { CardImg } from "@/lib/card-types";
 
 export type Step = { title: string; body: string; img: CardImg; hours: string };
@@ -12,58 +11,52 @@ export type Step = { title: string; body: string; img: CardImg; hours: string };
  * Scene 8 (and the About page): sketch → wax → casting → setting → polish.
  * Pinned and scrubbed; each frame pushes toward you while the next one opens
  * from a window in its centre, so you zoom *through* each step into the next.
+ * Phones: a swipe rail with the next step peeking in.
  */
 export function Workshop({ steps, id = "workshop", title = "From a pencil line to a polished ring" }: { steps: Step[]; id?: string; title?: string }) {
   const root = useRef<HTMLElement>(null);
 
-  useGSAP(
-    () => {
-      const el = root.current;
-      if (!el || prefersReducedMotion()) return;
-      return whenIdle(() => {
-        el.dataset.mode = "pin";
-        const n = steps.length;
-        const tl = gsap.timeline({
-          defaults: { ease: "none" },
-          scrollTrigger: {
-            trigger: el,
-            start: "top top",
-            end: `+=${(n - 1) * 85}%`,
-            pin: true,
-            scrub: 0.8,
-            onUpdate: (st) => {
-              const idx = Math.min(n - 1, Math.round(st.progress * (n - 1)));
-              el.querySelectorAll<HTMLElement>("[data-step-copy]").forEach((c, i) => c.toggleAttribute("data-active", i === idx));
-              const num = el.querySelector("[data-step-num]");
-              if (num) num.textContent = String(idx + 1).padStart(2, "0");
-            },
-          },
-        });
-        for (let i = 0; i < n - 1; i++) {
-          tl.to(`[data-frame="${i}"]`, { scale: 2.6, duration: 1 }, i)
-            .to(`[data-frame="${i}"]`, { opacity: 0, duration: 0.3 }, i + 0.7)
-            .fromTo(
-              `[data-frame="${i + 1}"]`,
-              { clipPath: "inset(42% 40% 42% 40% round 999px)", scale: 0.92 },
-              { clipPath: "inset(0% 0% 0% 0% round 0px)", scale: 1, duration: 1 },
-              i,
-            );
-        }
-        tl.fromTo("[data-step-bar]", { scaleX: 1 / n }, { scaleX: 1, duration: n - 1 }, 0);
-        return () => {
-          delete el.dataset.mode;
-        };
-      }, 1200, el);
-    },
-    { scope: root },
-  );
+  useDesktopScene(root, ({ gsap }, el) => {
+    el.dataset.mode = "pin";
+    const n = steps.length;
+    const tl = gsap.timeline({
+      defaults: { ease: "none" },
+      scrollTrigger: {
+        trigger: el,
+        start: "top top",
+        end: `+=${(n - 1) * 85}%`,
+        pin: true,
+        scrub: 0.8,
+        onUpdate: (st) => {
+          const idx = Math.min(n - 1, Math.round(st.progress * (n - 1)));
+          el.querySelectorAll<HTMLElement>("[data-step-copy]").forEach((c, i) => c.toggleAttribute("data-active", i === idx));
+          const num = el.querySelector("[data-step-num]");
+          if (num) num.textContent = String(idx + 1).padStart(2, "0");
+        },
+      },
+    });
+    for (let i = 0; i < n - 1; i++) {
+      tl.to(`[data-frame="${i}"]`, { scale: 2.6, duration: 1 }, i)
+        .to(`[data-frame="${i}"]`, { opacity: 0, duration: 0.3 }, i + 0.7)
+        .fromTo(
+          `[data-frame="${i + 1}"]`,
+          { clipPath: "inset(42% 40% 42% 40% round 999px)", scale: 0.92 },
+          { clipPath: "inset(0% 0% 0% 0% round 0px)", scale: 1, duration: 1 },
+          i,
+        );
+    }
+    tl.fromTo("[data-step-bar]", { scaleX: 1 / n }, { scaleX: 1, duration: n - 1 }, 0);
+    return () => {
+      delete el.dataset.mode;
+    };
+  });
 
   return (
     <section ref={root} id={id} data-dark className="group/ws relative bg-ink text-ivory" aria-labelledby={`${id}-title`}>
       <h2 id={`${id}-title`} className="sr-only">
         {title}
       </h2>
-      {/* Pinned, scrubbed version (desktop and phones with motion). The static list below is the no-motion fallback. */}
+      {/* Pinned, scrubbed version (desktop). The list below is the phone rail and the no-motion fallback. */}
       <div className="relative hidden h-[100svh] overflow-hidden group-data-[mode=pin]/ws:block">
         {steps.map((s, i) => (
           <div key={s.title} data-frame={i} className="absolute inset-0 will-change-transform" style={{ zIndex: i + 1, clipPath: i === 0 ? undefined : "inset(42% 40% 42% 40% round 999px)" }}>
@@ -106,18 +99,20 @@ export function Workshop({ steps, id = "workshop", title = "From a pencil line t
         </div>
       </div>
 
-      <div className="wrap py-24 group-data-[mode=pin]/ws:hidden">
-        <p className="eyebrow text-gold-pale">At the bench</p>
-        <p className="mt-3 max-w-xl font-display text-[clamp(2.2rem,4.4vw,4.2rem)] leading-[1.04]" aria-hidden>
-          {title}
-        </p>
-        <ol className="mt-12 grid gap-8 md:grid-cols-2 lg:grid-cols-5">
+      <div className="py-16 lg:py-24 group-data-[mode=pin]/ws:hidden">
+        <div className="wrap">
+          <p className="eyebrow text-gold-pale">At the bench</p>
+          <p className="mt-3 max-w-xl font-display text-[clamp(2.2rem,4.4vw,4.2rem)] leading-[1.04]" aria-hidden>
+            {title}
+          </p>
+        </div>
+        <ol className="no-scrollbar mt-10 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-px-5 px-5 md:px-10 lg:mx-auto lg:mt-12 lg:grid lg:max-w-[92rem] lg:grid-cols-5 lg:gap-8 lg:overflow-visible">
           {steps.map((s, i) => (
-            <li key={s.title}>
-              <div className="relative aspect-[3/4] overflow-hidden rounded-xl">
-                <Image src={s.img.src} alt={s.img.alt} fill sizes="(min-width:1024px) 20vw, 50vw" quality={60} className="object-cover" />
+            <li key={s.title} className="w-[72vw] max-w-80 shrink-0 snap-start lg:w-auto lg:max-w-none">
+              <div className="relative aspect-[4/5] overflow-hidden rounded-xl lg:aspect-[3/4]">
+                <Image src={s.img.src} alt={s.img.alt} fill sizes="(min-width:1024px) 20vw, 72vw" quality={60} className="object-cover" />
               </div>
-              <p className={clsx("spec mt-4 text-gold-pale")}>
+              <p className="spec mt-4 text-gold-pale">
                 Step {i + 1} · {s.hours}
               </p>
               <h3 className="mt-1 font-display text-2xl">{s.title}</h3>

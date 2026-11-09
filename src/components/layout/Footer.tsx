@@ -44,9 +44,9 @@ const cols = [
 
 export function Footer() {
   return (
-    <footer data-dark className="relative overflow-hidden bg-ink pt-20 pb-28 text-ivory md:pb-12">
+    <footer data-dark data-cv="footer" style={{ ["--cv" as string]: "calc(1927px - 114vw)", ["--cv-s" as string]: "1537px", ["--cv-t" as string]: "1230px" }} className="relative overflow-hidden bg-ink pt-14 pb-36 text-ivory md:pt-20 md:pb-12">
       <div className="wrap">
-        <div className="grid gap-12 border-b border-ivory/12 pb-14 lg:grid-cols-[1.2fr_2fr]">
+        <div className="grid gap-10 border-b border-ivory/12 pb-10 md:gap-12 md:pb-14 lg:grid-cols-[1.2fr_2fr]">
           <div>
             <Logo onDark />
             <p className="mt-6 max-w-sm font-display text-3xl leading-tight text-ivory">Fine jewelry, made in the light, in Dallas.</p>
@@ -55,14 +55,14 @@ export function Footer() {
             </p>
             <Newsletter />
           </div>
-          <div className="grid grid-cols-2 gap-10 sm:grid-cols-3">
+          <div className="grid grid-cols-3 gap-4 sm:gap-10">
             {cols.map((c) => (
               <nav key={c.title} aria-label={c.title}>
                 <p className="eyebrow mb-4 text-mist">{c.title}</p>
                 <ul className="space-y-1">
                   {c.links.map(([label, href]) => (
                     <li key={href}>
-                      <Link href={href} prefetch={false} className="link inline-flex min-h-9 items-center text-[0.95rem] text-ivory/90 hover:text-ivory">
+                      <Link href={href} prefetch={false} className="link inline-flex min-h-9 items-center text-[0.8rem] leading-tight text-ivory/90 hover:text-ivory sm:text-[0.95rem]">
                         {label}
                       </Link>
                     </li>

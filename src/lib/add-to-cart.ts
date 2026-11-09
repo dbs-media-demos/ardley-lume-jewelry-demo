@@ -2,7 +2,7 @@
 
 import { cart, ui } from "@/lib/store";
 import type { CartLine } from "@/lib/commerce/types";
-import { gsap, prefersReducedMotion } from "@/lib/gsap";
+import { loadGsap, prefersReducedMotion } from "@/lib/motion";
 
 /** The visible bag icon (header on desktop, bottom bar on phones). */
 function bagTarget(): HTMLElement | null {
@@ -43,7 +43,7 @@ export function flyToCart(source?: HTMLElement | null): Promise<void> {
   const dy = to.top + to.height / 2 - (from.top + from.height / 2);
   const scale = Math.max(0.06, 28 / from.width);
 
-  return new Promise((resolve) => {
+  return loadGsap().then(({ gsap }) => new Promise<void>((resolve) => {
     const tl = gsap.timeline({
       onComplete: () => {
         ghost.remove();
@@ -55,7 +55,7 @@ export function flyToCart(source?: HTMLElement | null): Promise<void> {
       .to(ghost, { y: dy, duration: 0.75, ease: "back.in(1.6)" }, 0.18)
       .to(ghost, { scale, borderRadius: "999px", duration: 0.75, ease: "power2.in" }, 0.18)
       .to(ghost, { opacity: 0, duration: 0.15 }, 0.85);
-  });
+  }));
 }
 
 export function addToCart(line: CartLine, source?: HTMLElement | null, opts: { openDrawer?: boolean } = {}) {

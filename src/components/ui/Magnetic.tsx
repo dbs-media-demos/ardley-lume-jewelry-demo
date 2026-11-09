@@ -1,16 +1,22 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
-import { gsap, isTouch, prefersReducedMotion } from "@/lib/gsap";
+import { isDesktop, loadGsap } from "@/lib/motion";
 
 /** Wraps a CTA so it leans toward the cursor (desktop only). */
 export function Magnetic({ children, strength = 0.35, className }: { children: ReactNode; strength?: number; className?: string }) {
   const ref = useRef<HTMLSpanElement>(null);
   useEffect(() => {
     const el = ref.current;
-    if (!el || isTouch() || prefersReducedMotion()) return;
-    const xTo = gsap.quickTo(el, "x", { duration: 0.8, ease: "elastic.out(1, 0.4)" });
-    const yTo = gsap.quickTo(el, "y", { duration: 0.8, ease: "elastic.out(1, 0.4)" });
+    if (!el || !isDesktop()) return;
+    let xTo: (v: number) => unknown = () => {};
+    let yTo: (v: number) => unknown = () => {};
+    let dead = false;
+    void loadGsap().then(({ gsap }) => {
+      if (dead) return;
+      xTo = gsap.quickTo(el, "x", { duration: 0.8, ease: "elastic.out(1, 0.4)" });
+      yTo = gsap.quickTo(el, "y", { duration: 0.8, ease: "elastic.out(1, 0.4)" });
+    });
     const move = (e: PointerEvent) => {
       const r = el.getBoundingClientRect();
       xTo((e.clientX - (r.left + r.width / 2)) * strength);
@@ -23,6 +29,7 @@ export function Magnetic({ children, strength = 0.35, className }: { children: R
     el.addEventListener("pointermove", move);
     el.addEventListener("pointerleave", leave);
     return () => {
+      dead = true;
       el.removeEventListener("pointermove", move);
       el.removeEventListener("pointerleave", leave);
     };

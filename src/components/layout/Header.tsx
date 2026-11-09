@@ -9,6 +9,7 @@ import { Logo } from "@/components/brand/Logo";
 import { cartCount, ui, useCart, useWishlist } from "@/lib/store";
 import type { CardImg } from "@/lib/card-types";
 import { site } from "@/content/site";
+import { isDesktop } from "@/lib/motion";
 
 export type MenuData = {
   categories: { slug: string; name: string; img: CardImg }[];
@@ -53,11 +54,27 @@ export function Header({ menu }: { menu: MenuData }) {
 
   // Light text while a dark section ([data-dark] / [data-hero-dark]) sits under the header.
   useEffect(() => {
+    const sel = "[data-dark], [data-hero-dark]";
+    // Phones and tablets: an IntersectionObserver on a thin band under the header. It never
+    // forces layout, so sections parked by content-visibility stay parked.
+    if (!isDesktop()) {
+      const under = new Set<Element>();
+      const io = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((e) => (e.isIntersecting ? under.add(e.target) : under.delete(e.target)));
+          setOverDark(under.size > 0);
+        },
+        { rootMargin: "-34px 0px -94% 0px" },
+      );
+      document.querySelectorAll(sel).forEach((el) => io.observe(el));
+      return () => io.disconnect();
+    }
+    // Desktop: scenes toggle data-dark while they scrub, so read it live on scroll.
     let raf = 0;
     const check = () => {
       raf = 0;
       const y = 34;
-      const dark = Array.from(document.querySelectorAll<HTMLElement>("[data-dark], [data-hero-dark]")).some((el) => {
+      const dark = Array.from(document.querySelectorAll<HTMLElement>(sel)).some((el) => {
         const r = el.getBoundingClientRect();
         return r.top <= y && r.bottom >= y && r.height > 0;
       });
@@ -117,8 +134,8 @@ export function Header({ menu }: { menu: MenuData }) {
       className={clsx(
         "fixed inset-x-0 top-0 z-[90] transition-[background-color,color,height,box-shadow] duration-500 ease-[var(--ease-out-expo)]",
         dark ? "text-ivory" : "text-ink",
-        solid ? "bg-ivory/92 shadow-[0_1px_0_rgb(14_19_17/0.08)] backdrop-blur-md" : "bg-transparent",
-        scrolled && overDark && !mega && !mobile && "bg-ink/40 backdrop-blur-md",
+        // Opaque once scrolled: nothing shows through the header.
+        solid ? "bg-ivory shadow-[0_1px_0_rgb(14_19_17/0.08)]" : scrolled && overDark && !mobile ? "bg-ink shadow-[0_1px_0_rgb(248_244_236/0.08)]" : "bg-transparent",
       )}
       onMouseLeave={scheduleClose}
     >

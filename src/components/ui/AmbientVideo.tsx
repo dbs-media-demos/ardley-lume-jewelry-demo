@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import clsx from "clsx";
-import { isTouch, prefersReducedMotion } from "@/lib/gsap";
+import { isTouch, prefersReducedMotion } from "@/lib/motion";
 
 /**
  * Muted ambient loop. The poster is the first paint; the video only loads once it's
