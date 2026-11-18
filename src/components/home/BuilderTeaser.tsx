@@ -94,7 +94,7 @@ export function BuilderTeaser({ live3d = true }: { live3d?: boolean }) {
   }, [total]);
 
   // Live 3D (desktop only): imported inside this effect and warmed up while the browser is
-  // idle after load, so it is ready before anyone scrolls here. Until then, and for good if
+  // idle after load, so it is ready before anyone scrolls here. Until then, and for the page load if
   // a scene runs slow (lib/three-gate), the still stays.
   useEffect(() => {
     const still = new URLSearchParams(window.location.search).has("builderStill");

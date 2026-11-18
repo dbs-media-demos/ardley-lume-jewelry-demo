@@ -19,8 +19,8 @@ declare global {
  *   three.js is imported inside the effect, the scene warms up unseen, and only then
  *   does the live ring fade in over the still, which stays as the fallback. If the
  *   warm-up stutters, it stops and the still stays; if the first 2 s of frames are too
- *   slow (or the other scene's were), it fades back to the still; either way for the
- *   rest of the visit (lib/three-gate). The hero pins and scrubs the dive.
+ *   slow (or the other scene's were), it fades back to the still; either way for this
+ *   page load, and after two slow loads the rest of the visit (lib/three-gate). The hero pins and scrubs the dive.
  * - `?still=WxH` renders the opening frame at that size for scripts/ring-stills.mjs.
  */
 export function HeroMotion({ still }: { still: { phone: string; desktop: string } }) {
