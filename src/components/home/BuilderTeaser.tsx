@@ -60,9 +60,10 @@ function Still({ src, alt, hidden }: { src: string; alt: string; hidden: boolean
 /**
  * Scene 5: a taste of the ring builder. Desktop: a live 3D solitaire you can drag
  * around; the stone and metal you pick change the ring itself and the price.
- * Phones: the same choices swap renders of that ring (no three.js).
+ * Phones, and the no-3D homepage (/v2, `live3d={false}`): the same choices swap renders
+ * of that ring, and three.js is never imported.
  */
-export function BuilderTeaser() {
+export function BuilderTeaser({ live3d = true }: { live3d?: boolean }) {
   const [shape, setShape] = useState<Shape>("oval");
   const [toneIdx, setToneIdx] = useState(0);
   const t = TONES[toneIdx];
@@ -98,7 +99,7 @@ export function BuilderTeaser() {
   useEffect(() => {
     const still = new URLSearchParams(window.location.search).has("builderStill");
     const el = stage.current;
-    if (!el || (!still && (!canRun3D() || is3DOff()))) return;
+    if (!el || (!still && (!live3d || !canRun3D() || is3DOff()))) return;
     let dead = false;
     let fade = 0;
     const vis = new IntersectionObserver(([e]) => scene.current?.setVisible(e.isIntersecting));
@@ -157,7 +158,7 @@ export function BuilderTeaser() {
       scene.current = null;
       delete window.__builderStill;
     };
-  }, []);
+  }, [live3d]);
 
   useEffect(() => {
     choice.current = { shape, tone: t.tone };

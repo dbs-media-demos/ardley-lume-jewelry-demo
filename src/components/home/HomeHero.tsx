@@ -3,17 +3,23 @@ import { getImageProps } from "next/image";
 import { img } from "@/lib/images";
 import { site } from "@/content/site";
 import { HeroMotion } from "./HeroMotion";
+import { HeroLight } from "./HeroLight";
 import { Magnetic } from "@/components/ui/Magnetic";
 
 /** Phone/tablet and desktop stills of the 3D ring, rendered from the live scene by scripts/ring-stills.mjs. */
 export const RING_STILL = { phone: "/images/3d/hero-ring-phone.webp", desktop: "/images/3d/hero-ring-desktop.webp" };
 
 /**
- * Scene 1: the light hero. Photo (LCP) + the ring as a still in the server HTML;
+ * Scene 1: the light hero. `variant="v2"` (the /v2 homepage) swaps only the centrepiece:
+ * no WebGL, the light through a brilliant in SVG + canvas 2D (HeroLight); phones get the
+ * same ring still either way. Everything else, words and buttons included, is shared.
+ *
+ * The 3D version: Photo (LCP) + the ring as a still in the server HTML;
  * on desktop HeroMotion fades the live WebGL ring in over the still and scrubs the
  * dive into the stone. The heading, text and buttons are painted at once, never animated in.
  */
-export function HomeHero() {
+export function HomeHero({ variant = "3d" }: { variant?: "3d" | "v2" }) {
+  const is3d = variant === "3d";
   const wide = img("hero-b");
   const tall = img("hero-portrait");
   const common = { alt: wide.alt, sizes: "100vw", quality: 75 };
@@ -27,7 +33,7 @@ export function HomeHero() {
     // re-parents the hero (re-inserting it would register a late LCP candidate).
     <div id="hero-spacer">
       <section id="hero" data-hero-dark className="group/hero relative h-[84svh] min-h-[37rem] overflow-hidden bg-ink text-ivory lg:h-[100svh]">
-        <div data-hero-photo className="absolute inset-0 origin-[62%_55%] transition-opacity duration-[2s] lg:opacity-70 group-data-[ring=on]/hero:opacity-55">
+        <div data-hero-photo className={`absolute inset-0 origin-[62%_55%] transition-opacity duration-[2s] ${is3d ? "lg:opacity-70 group-data-[ring=on]/hero:opacity-55" : "lg:opacity-50"}`}>
           <picture className="zoom-settle absolute inset-0 block">
             <source media="(max-width: 767px)" srcSet={tallSet} sizes="100vw" />
             {/* eslint-disable-next-line jsx-a11y/alt-text */}
@@ -37,7 +43,7 @@ export function HomeHero() {
         <div aria-hidden className="absolute inset-0 z-[1] bg-[radial-gradient(130%_80%_at_20%_100%,rgb(14_19_17/0.94),rgb(14_19_17/0.55)_55%,transparent_80%)] lg:bg-[radial-gradient(120%_90%_at_15%_85%,rgb(14_19_17/0.88),transparent_60%)]" />
         <div aria-hidden className="absolute inset-x-0 top-0 z-[1] h-40 bg-gradient-to-b from-ink/70 to-transparent" />
 
-        <HeroMotion still={RING_STILL} />
+        {is3d ? <HeroMotion still={RING_STILL} /> : <HeroLight phoneStill={RING_STILL.phone} />}
 
         <div data-hero-copy className="wrap relative z-[3] flex h-full flex-col justify-end pb-6 md:pb-16 lg:pb-20">
           <h1>
@@ -77,6 +83,8 @@ export function HomeHero() {
           </div>
         </div>
 
+        {is3d && (
+          <>
         <div data-hero-cue aria-hidden className="absolute bottom-7 left-[69%] z-[3] hidden -translate-x-1/2 flex-col items-center gap-2 text-ivory/70 lg:flex">
           <span className="eyebrow">Scroll into the stone</span>
           <span className="block h-10 w-px origin-top bg-gradient-to-b from-gold to-transparent [animation:cue_2.4s_var(--ease-in-out-soft)_infinite]" />
@@ -84,6 +92,8 @@ export function HomeHero() {
 
         <div data-hero-flash aria-hidden className="pointer-events-none absolute inset-0 z-[4] bg-[radial-gradient(circle_at_68%_45%,#fff8e6,#e8d6a8_35%,transparent_75%)] opacity-0" />
         <div data-hero-night aria-hidden className="pointer-events-none absolute inset-0 z-[5] bg-ink opacity-0" />
+          </>
+        )}
       </section>
     </div>
   );

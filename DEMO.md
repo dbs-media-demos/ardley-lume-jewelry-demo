@@ -22,6 +22,13 @@
 - Phone budget after the 3D pass (production build, 375 px, 4× CPU, slow 4G, `scripts/phone-budget.mjs`): home LCP ≈ 1.4–1.8 s, TBT ≈ 130–260 ms (median ≈ 155), CLS 0, JS 196 KB compressed (incl. ~20 KB of route prefetch), 0 bytes of three.js, ≈ 485 KB total, 2 font files.
   *SEO 69 is only the intentional noindex; 100 with `NEXT_PUBLIC_NOINDEX=false`.
 
+## Two homepages: `/` and `/v2` (owner, 2026-11-18)
+- `/` is the full version with the WebGL ring hero. `/v2` is the same homepage with no 3D at all, for a slow laptop or a lead who'd rather not: same sections, words, photos and order; only the hero changes, and the ring builder runs on its 12 stills. Zero bytes of three.js on /v2 at any width (`noindex`, canonical `/`).
+- One tree: `src/components/home/HomePage.tsx` takes `hero="3d" | "v2"`; `HomeHero variant`, `Facets contained` and `BuilderTeaser live3d` are the only switches.
+- The /v2 hero: light through a round brilliant (`HeroLight` + `LightStone`, maths in `src/components/fx/brilliant.ts`). An ideal-cut stone (57 facets) turns while a bundle of light is ray-traced through its cross-section (Snell's law, total internal reflection, diamond's dispersion), so the fire that leaves the crown is computed, not drawn; the cursor moves the light and the readout is the real share returned through the top. First paint is an SVG that draws itself with CSS; after load the canvas 2D loop takes over (pixel ratio ≤ 1.5, stops off screen, stays on its last frame if the first 2 s run slow). Reduced motion: the finished SVG, no loop. Phones: the same ring still as `/`.
+- No /for/[token] in this demo, so there is no /for/[token]/v2.
+- Check: `node scripts/with-server.mjs node scripts/v2-check.mjs /v2 <outDir> [cpuRate]` (three.js scripts, frames at 0.3–4.5 s, cursor, scroll, errors).
+
 ## 3D and phones (how it's built)
 - Only `HeroMotion` and `BuilderTeaser` import three.js, with `await import()` inside an effect behind `canRun3D()` (`src/lib/motion.ts`: `(min-width:1024px) and (hover:hover) and (pointer:fine)`, no reduced motion, no Save-Data), after load + idle. GSAP is also only reached through `loadGsap()` and every scroll scene runs through `useDesktopScene`, so phones download neither.
 - Models are built from primitives in `src/components/fx/ring-kit.ts` (no model files, no licences).

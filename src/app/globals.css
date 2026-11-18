@@ -356,6 +356,16 @@
     animation: rise-line 1.5s var(--ease-out-expo) both;
     animation-delay: var(--d, 0s);
   }
+  /* /v2 hero: the stone and its light draw themselves (pathLength="1"), then the fire fades in. */
+  .draw-in {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: draw-in var(--t, 1.3s) var(--ease-in-out-soft) var(--d, 0s) forwards;
+  }
+  .fade-late {
+    opacity: 0;
+    animation: fade-late 1.2s ease var(--d, 0s) forwards;
+  }
   .zoom-settle {
     animation: zoom-settle 2.6s var(--ease-out-expo) both;
   }
@@ -486,7 +496,24 @@
   }
 }
 
+@keyframes draw-in {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes fade-late {
+  to {
+    opacity: 1;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .draw-in,
+  .fade-late {
+    animation: none !important;
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
   *,
   *::before,
   *::after {

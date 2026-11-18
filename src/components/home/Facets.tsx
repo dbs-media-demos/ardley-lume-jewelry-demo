@@ -22,8 +22,11 @@ for (let i = 0; i < 8; i++) {
 }
 const table = T.map(pt).join(" ");
 
-/** Scene 2: the stone's architecture draws itself while the manifesto scrubs in (desktop). Phones: the finished diagram behind the same words. */
-export function Facets() {
+/**
+ * Scene 2: the stone's architecture draws itself while the manifesto scrubs in (desktop). Phones: the finished diagram behind the same words.
+ * `contained`: no dive comes before it (the /v2 homepage), so the oversized diagram is clipped to this scene instead of reaching up over the hero.
+ */
+export function Facets({ contained = false }: { contained?: boolean }) {
   const root = useRef<HTMLElement>(null);
 
   useDesktopScene(root, ({ gsap }, el) => {
@@ -45,7 +48,7 @@ export function Facets() {
   return (
     <section ref={root} id="facets" data-dark className="relative z-[6] bg-ink text-ivory" aria-labelledby="facets-title">
       {/* Clip sideways only: as this scene enters right after the dive, the big diagram extends above its top edge over the dark hero. */}
-      <div className="absolute inset-x-0 top-0 h-[28rem] overflow-hidden lg:sticky lg:h-[100svh] lg:overflow-x-clip lg:overflow-y-visible">
+      <div className={`absolute inset-x-0 top-0 h-[28rem] overflow-hidden lg:sticky lg:h-[100svh] ${contained ? "" : "lg:overflow-x-clip lg:overflow-y-visible"}`}>
         <div data-facets-art className="absolute inset-0 grid place-items-center max-lg:-top-16 max-lg:place-items-start max-lg:justify-center">
           <svg data-diagram viewBox="0 0 1000 1000" className="w-[140vw] max-w-none opacity-45 md:w-[min(92vh,80vw)] lg:opacity-80" aria-hidden>
             <defs>
