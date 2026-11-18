@@ -8,7 +8,8 @@ import clsx from "clsx";
 import { Logo } from "@/components/brand/Logo";
 import { cartCount, ui, useCart, useWishlist } from "@/lib/store";
 import type { CardImg } from "@/lib/card-types";
-import { site } from "@/content/site";
+import { useBiz } from "@/components/preview/BizContext";
+import { telOf } from "@/lib/biz-core";
 import { isDesktop } from "@/lib/motion";
 
 export type MenuData = {
@@ -25,6 +26,9 @@ const primary = [
 ];
 
 export function Header({ menu }: { menu: MenuData }) {
+  const biz = useBiz();
+  // A preview is the homepage only (other links stay put), so nothing is prefetched for it.
+  const pf = biz.preview ? false : undefined;
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [overDark, setOverDark] = useState(false);
@@ -171,7 +175,7 @@ export function Header({ menu }: { menu: MenuData }) {
               </svg>
             </button>
             {primary.map((l) => (
-              <Link
+              <Link prefetch={pf}
                 key={l.href}
                 href={l.href}
                 onMouseEnter={scheduleClose}
@@ -185,13 +189,13 @@ export function Header({ menu }: { menu: MenuData }) {
         </div>
 
         {/* logo */}
-        <Link href="/" aria-label={`${site.name}, home`} className="flex min-h-11 items-center">
+        <Link prefetch={pf} href="/" aria-label={`${biz.name}, home`} className="flex min-h-11 items-center">
           <Logo compact onDark={dark} />
         </Link>
 
         {/* right */}
         <div className="flex items-center justify-end gap-0.5 sm:gap-1">
-          <Link href="/appointment" className="link mr-2 hidden min-h-11 items-center text-[0.8rem] font-medium tracking-[0.14em] uppercase xl:flex">
+          <Link prefetch={pf} href="/appointment" className="link mr-2 hidden min-h-11 items-center text-[0.8rem] font-medium tracking-[0.14em] uppercase xl:flex">
             Book a visit
           </Link>
           <button type="button" aria-label="Search the store" onClick={ui.openSearch} className="grid size-11 place-items-center">
@@ -234,7 +238,7 @@ export function Header({ menu }: { menu: MenuData }) {
                 </li>
               ))}
             </ul>
-            <Link href="/shop" className="link mt-5 inline-flex min-h-11 items-center text-sm font-semibold">
+            <Link prefetch={pf} href="/shop" className="link mt-5 inline-flex min-h-11 items-center text-sm font-semibold">
               Shop everything →
             </Link>
           </div>
@@ -249,12 +253,12 @@ export function Header({ menu }: { menu: MenuData }) {
                 </li>
               ))}
               <li className="pt-3">
-                <Link href="/gift-cards" className="link inline-flex min-h-10 items-center text-[1.02rem]">
+                <Link prefetch={pf} href="/gift-cards" className="link inline-flex min-h-10 items-center text-[1.02rem]">
                   Gift cards
                 </Link>
               </li>
               <li>
-                <Link href="/ring-size-guide" className="link inline-flex min-h-10 items-center text-[1.02rem]">
+                <Link prefetch={pf} href="/ring-size-guide" className="link inline-flex min-h-10 items-center text-[1.02rem]">
                   Ring size guide
                 </Link>
               </li>
@@ -274,7 +278,7 @@ export function Header({ menu }: { menu: MenuData }) {
             ))}
             <span className="eyebrow absolute bottom-4 left-4 rounded-full bg-ivory/90 px-3 py-1.5 text-ink">{menu.categories[hoverCat]?.name}</span>
           </div>
-          <Link href="/engagement/build" className="group relative flex aspect-[4/5] flex-col justify-end overflow-hidden rounded-xl bg-ink p-6 text-ivory">
+          <Link prefetch={pf} href="/engagement/build" className="group relative flex aspect-[4/5] flex-col justify-end overflow-hidden rounded-xl bg-ink p-6 text-ivory">
             {menusUsed && <Image src={menu.feature.src} alt="" fill sizes="22vw" quality={60} className="object-cover opacity-70 transition-transform duration-[1.6s] ease-[var(--ease-out-expo)] group-hover:scale-105" />}
             <span className="relative eyebrow text-gold-pale">The ring builder</span>
             <span className="relative mt-2 font-display text-3xl leading-none">Design your engagement ring</span>
@@ -313,9 +317,11 @@ export function Header({ menu }: { menu: MenuData }) {
               </li>
             ))}
           </ul>
-          <a href={site.phoneHref} className="mt-8 inline-flex min-h-11 items-center text-gold-pale">
-            Call {site.phone}
+          {biz.phone && (
+          <a href={telOf(biz)} className="mt-8 inline-flex min-h-11 items-center text-gold-pale">
+            Call {biz.phoneDisplay}
           </a>
+          )}
         </nav>
       </div>
     </header>
@@ -325,7 +331,7 @@ export function Header({ menu }: { menu: MenuData }) {
 function WishLink() {
   const { slugs } = useWishlist();
   return (
-    <Link href="/wishlist" aria-label={`Wishlist${slugs.length ? `, ${slugs.length} saved` : ""}`} className="relative hidden size-11 place-items-center sm:grid">
+    <Link prefetch={useBiz().preview ? false : undefined} href="/wishlist" aria-label={`Wishlist${slugs.length ? `, ${slugs.length} saved` : ""}`} className="relative hidden size-11 place-items-center sm:grid">
       <svg viewBox="0 0 24 24" className="size-[1.2rem]" aria-hidden>
         <path d="M12 20s-7.5-4.6-7.5-10.1A4.2 4.2 0 0112 7.4a4.2 4.2 0 017.5 2.5C19.5 15.4 12 20 12 20z" fill={slugs.length ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.4" />
       </svg>

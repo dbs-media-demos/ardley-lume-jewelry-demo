@@ -3,21 +3,22 @@
 import { useEffect, useRef, useState } from "react";
 import { afterLoad, canRun3D, isDesktop, loadGsap } from "@/lib/motion";
 import { giveUp3D, inTurn, is3DOff, on3DOff, watchFrames, watchWarmUp } from "@/lib/three-gate";
-import type { RingHandle } from "@/components/fx/RingScene";
+import { whenLoaderDone } from "@/lib/loader";
+import type { PendantHandle } from "@/components/fx/PendantScene";
 
 declare global {
   interface Window {
-    __ringStill?: () => string;
+    __pendantStill?: () => string;
   }
 }
 
 /**
  * Client half of the home hero.
- * - Phones, tablets, reduced motion, Save-Data: the ring is a still image (server HTML),
+ * - Phones, tablets, reduced motion, Save-Data: the pendant is a still image (server HTML),
  *   nothing pins, and neither GSAP nor three.js is downloaded.
  * - Desktop (big screen + mouse): once the page has loaded and the browser is idle,
  *   three.js is imported inside the effect, the scene warms up unseen, and only then
- *   does the live ring fade in over the still, which stays as the fallback. If the
+ *   does the live pendant fade in over the still, which stays as the fallback. If the
  *   warm-up stutters, it stops and the still stays; if the first 2 s of frames are too
  *   slow (or the other scene's were), it fades back to the still; either way for this
  *   page load, and after two slow loads the rest of the visit (lib/three-gate). The hero pins and scrubs the dive.
@@ -26,7 +27,7 @@ declare global {
 export function HeroMotion({ still }: { still: { phone: string; desktop: string } }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
-  const ring = useRef<RingHandle | null>(null);
+  const piece = useRef<PendantHandle | null>(null);
   const progress = useRef(0);
   const onScreen = useRef(false);
   const [live, setLive] = useState(false);
@@ -53,8 +54,8 @@ export function HeroMotion({ still }: { still: { phone: string; desktop: string 
               scrub: 0.6,
               onUpdate: (st) => {
                 progress.current = st.progress;
-                ring.current?.setDive(Math.min(1, st.progress * 1.25));
-                ring.current?.setVisible(onScreen.current && st.progress < 0.999);
+                piece.current?.setDive(Math.min(1, st.progress * 1.25));
+                piece.current?.setVisible(onScreen.current && st.progress < 0.999);
               },
             },
           });
@@ -78,25 +79,25 @@ export function HeroMotion({ still }: { still: { phone: string; desktop: string 
     };
   }, []);
 
-  // Live WebGL ring (desktop only; three.js is imported here and nowhere else on this page).
+  // Live WebGL pendant (desktop only; three.js is imported here and nowhere else on this page).
   useEffect(() => {
     const stillSize = new URLSearchParams(window.location.search).get("still");
     if (!stillSize && (!canRun3D() || is3DOff())) return;
     let disposed = false;
     let fade = 0;
-    const onMove = (e: PointerEvent) => ring.current?.setPointer((e.clientX / window.innerWidth) * 2 - 1, (e.clientY / window.innerHeight) * 2 - 1);
+    const onMove = (e: PointerEvent) => piece.current?.setPointer((e.clientX / window.innerWidth) * 2 - 1, (e.clientY / window.innerHeight) * 2 - 1);
     const hero = document.getElementById("hero");
     // Off screen, or once the dive has gone fully dark (the night layer covers the canvas), nothing is drawn.
     const io = hero
       ? new IntersectionObserver(([en]) => {
           onScreen.current = en.isIntersecting;
-          ring.current?.setVisible(en.isIntersecting && progress.current < 0.999);
+          piece.current?.setVisible(en.isIntersecting && progress.current < 0.999);
         })
       : null;
 
     const start = async () => {
       const canvas = canvasRef.current;
-      if (disposed || ring.current || !canvas || (!stillSize && is3DOff())) return;
+      if (disposed || piece.current || !canvas || (!stillSize && is3DOff())) return;
       if (stillSize && wrapRef.current) {
         const [w, h] = stillSize.split("x").map(Number);
         Object.assign(wrapRef.current.style, { position: "fixed", inset: "0 auto auto 0", width: `${w}px`, height: `${h}px`, maskImage: "none", opacity: "1" });
@@ -109,14 +110,14 @@ export function HeroMotion({ still }: { still: { phone: string; desktop: string 
         if (!ok) giveUp3D();
         judged();
       });
-      const { createRingScene } = await import("@/components/fx/RingScene");
+      const { createPendantScene } = await import("@/components/fx/PendantScene");
       if (disposed) return;
       // A warm-up that stutters means a processor too slow for live 3D: stop, keep the still.
       // (Watched from here: evaluating three.js itself is a one-off any machine pays once.)
       const warm = stillSize ? null : watchWarmUp();
-      let handle: RingHandle | null = null;
+      let handle: PendantHandle | null = null;
       try {
-        handle = await createRingScene(canvas, { still: !!stillSize, onGap: stillSize ? undefined : watch, proceed: warm?.ok });
+        handle = await createPendantScene(canvas, { still: !!stillSize, onGap: stillSize ? undefined : watch, proceed: warm?.ok });
         if (warm && !warm.ok()) {
           handle?.dispose(true);
           performance.mark("3d:hero:slow-warm-up");
@@ -127,9 +128,9 @@ export function HeroMotion({ still }: { still: { phone: string; desktop: string 
       }
       if (!handle) return; // no real graphics chip: the still stays
       if (disposed || (!stillSize && is3DOff())) return handle.dispose();
-      ring.current = handle;
+      piece.current = handle;
       if (stillSize) {
-        window.__ringStill = () => handle.snapshot();
+        window.__pendantStill = () => handle.snapshot();
         return;
       }
       handle.setDive(Math.min(1, progress.current * 1.25));
@@ -143,19 +144,20 @@ export function HeroMotion({ still }: { still: { phone: string; desktop: string 
 
     // Too slow here or in another scene: freeze, fade back to the still, then free the GPU.
     const offSlow = on3DOff(() => {
-      const r = ring.current;
+      const r = piece.current;
       if (!r || stillSize) return;
       r.stop();
       setLive(false);
       window.removeEventListener("pointermove", onMove);
       fade = window.setTimeout(() => {
         r.dispose(true);
-        if (ring.current === r) ring.current = null;
+        if (piece.current === r) piece.current = null;
       }, 1600);
     });
 
-    // After load and idle: the photo, the still and the text always come first.
-    const cancel = afterLoad(() => void inTurn(start), 800);
+    // After load and idle: the photo, the still and the text always come first (and on a preview
+    // that opens on the lead's logo, the logo: the pendant's entrance is never played under it).
+    const cancel = whenLoaderDone(() => afterLoad(() => void inTurn(start), 800));
     return () => {
       disposed = true;
       cancel();
@@ -163,17 +165,17 @@ export function HeroMotion({ still }: { still: { phone: string; desktop: string 
       window.clearTimeout(fade);
       window.removeEventListener("pointermove", onMove);
       io?.disconnect();
-      ring.current?.dispose();
-      ring.current = null;
-      delete window.__ringStill;
+      piece.current?.dispose();
+      piece.current = null;
+      delete window.__pendantStill;
     };
   }, []);
 
   useEffect(() => {
     const hero = document.getElementById("hero");
     if (!hero) return;
-    if (live) hero.dataset.ring = "on";
-    else delete hero.dataset.ring;
+    if (live) hero.dataset.piece = "on";
+    else delete hero.dataset.piece;
   }, [live]);
 
   return (

@@ -15,7 +15,7 @@ export const GEM_R = 0.42; // girdle "radius" of a 1 ct stone on a ring with inn
 type V2 = [number, number];
 
 /** Point on the stone's outline (x across the finger, z along it), u in [0,1). Unit-ish size, tip of the pear at +z. */
-function outline(shape: Shape, u: number): V2 {
+export function outline(shape: Shape, u: number): V2 {
   const t = u * Math.PI * 2;
   switch (shape) {
     case "round":
@@ -62,7 +62,7 @@ function emerald(u: number): V2 {
 }
 
 /** Rough centre of the outline (the pear's sits toward its round end). */
-function centre(shape: Shape): V2 {
+export function centre(shape: Shape): V2 {
   let x = 0;
   let z = 0;
   for (let i = 0; i < 64; i++) {
@@ -87,6 +87,20 @@ const BRILLIANT: Level[] = [
   { y: -0.86, s: 0, n: 1, off: 0 }, // culet
 ];
 
+/** The same cut with twice the facets: a big stone seen close (the hero pendant) stays crisp, never low-poly. */
+const DENSE: Level[] = [
+  { y: 0.34, s: 0, n: 1, off: 0 },
+  { y: 0.34, s: 0.56, n: 16, off: 0 },
+  { y: 0.25, s: 0.77, n: 16, off: 0.5 },
+  { y: 0.13, s: 0.93, n: 32, off: 0.25 },
+  { y: 0.03, s: 1, n: 64, off: 0 },
+  { y: -0.03, s: 1, n: 64, off: 0 },
+  { y: -0.24, s: 0.8, n: 32, off: 0.25 },
+  { y: -0.52, s: 0.4, n: 16, off: 0.5 },
+  { y: -0.72, s: 0.16, n: 16, off: 0 },
+  { y: -0.86, s: 0, n: 1, off: 0 },
+];
+
 const STEP: Level[] = [
   { y: 0.26, s: 0, n: 1, off: 0 },
   { y: 0.26, s: 0.64, n: 8, off: 0 }, // table
@@ -103,8 +117,8 @@ const STEP: Level[] = [
 const emU = (k: number) => EM.at[k];
 
 /** Faceted stone: rings of points at each level, zipped together, flat-shaded. */
-export function gemGeometry(shape: Shape) {
-  const levels = shape === "emerald" ? STEP : BRILLIANT;
+export function gemGeometry(shape: Shape, dense = false) {
+  const levels = shape === "emerald" ? STEP : dense ? DENSE : BRILLIANT;
   const c = centre(shape);
   const rings = levels.map((lv) => {
     const us = Array.from({ length: lv.n }, (_, k) => (shape === "emerald" && lv.n === 8 ? emU(k) : (k + lv.off) / lv.n));
@@ -278,9 +292,10 @@ async function precompile(renderer: THREE.WebGLRenderer, pmrem: THREE.PMREMGener
  * cube map (what the stone refracts). "dark": black room, long softboxes (hero).
  * "light": a pale tent with a few dark flags, so metal reads bright on an ivory page (builder).
  * Every shader this needs is compiled in parallel first (see `precompile`), so building it
- * never freezes the page.
+ * never freezes the page. `fine`: the hero pendant's big stone, close up: three times as many,
+ * smaller panels for it to refract (a finer mosaic of light) and a few coloured ones (fire).
  */
-export async function studio(renderer: THREE.WebGLRenderer, mood: "dark" | "light") {
+export async function studio(renderer: THREE.WebGLRenderer, mood: "dark" | "light", fine = false) {
   const env = new THREE.Scene();
   const room = new THREE.Mesh(
     new THREE.SphereGeometry(20, 32, 16),
@@ -319,12 +334,15 @@ export async function studio(renderer: THREE.WebGLRenderer, mood: "dark" | "ligh
   const facets = new THREE.Scene();
   facets.add(new THREE.Mesh(new THREE.SphereGeometry(20, 16, 8), new THREE.MeshBasicMaterial({ color: mood === "dark" ? 0x34322e : 0x5e5a53, side: THREE.BackSide })));
   const tints = [0xffffff, 0xfff1d8, 0xffffff, 0xdfe9ff, 0xffffff, 0xffe4d6, 0xf2ffe8, 0xffffff];
-  for (let i = 0; i < 64; i++) {
-    const y = 1 - ((i + 0.5) / 64) * 2;
+  const fire = [0xff9a4a, 0x5aa8ff, 0x7dffa8, 0xc58bff, 0xffd34d];
+  const panels = fine ? 190 : 64;
+  for (let i = 0; i < panels; i++) {
+    const y = 1 - ((i + 0.5) / panels) * 2;
     const r = Math.sqrt(1 - y * y);
     const a = i * 2.39996;
-    const size = 2.4 + ((i * 7) % 5) * 0.4;
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(size, size), new THREE.MeshBasicMaterial({ color: new THREE.Color(tints[i % tints.length]).multiplyScalar(0.7 + ((i * 13) % 7) * 0.5), side: THREE.DoubleSide }));
+    const size = (2.4 + ((i * 7) % 5) * 0.4) * (fine ? 0.68 : 1);
+    const tint = fine && i % 9 === 4 ? fire[(i / 9) % fire.length | 0] : tints[i % tints.length];
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(size, size), new THREE.MeshBasicMaterial({ color: new THREE.Color(tint).multiplyScalar(0.7 + ((i * 13) % 7) * 0.5), side: THREE.DoubleSide }));
     m.position.set(Math.cos(a) * r * 10, y * 10, Math.sin(a) * r * 10);
     m.lookAt(0, 0, 0);
     facets.add(m);

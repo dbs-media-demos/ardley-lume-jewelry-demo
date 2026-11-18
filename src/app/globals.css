@@ -651,5 +651,152 @@
 }
 
 .footer-wordmark::before {
-  content: "Ardley & Lume";
+  content: attr(data-word);
+}
+
+/* ───────────────────────── the lead's logo (personalised previews) ───────────────────────── */
+
+/* Inline SVG from the CRM: ink is currentColor, the name is set in our display face */
+.lead-logo {
+  display: inline-block;
+  line-height: 0;
+}
+.lead-logo svg {
+  display: block;
+  height: 100%;
+  width: auto;
+  max-width: 100%;
+  overflow: visible;
+}
+.lead-logo [data-part="word"] text {
+  font-family: var(--font-display);
+}
+
+/* The loader (components/preview/LeadLoader): shown only while the inline script says so, gone at 3 s whatever happens */
+.lead-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: none;
+  place-items: center;
+  background: var(--color-ink);
+  color: var(--color-ivory);
+  clip-path: inset(0 0 0 0);
+  animation: ll-failsafe 0.01s linear 3s forwards;
+}
+html:is([data-loader="on"], [data-loader="out"], [data-loader="skip-out"], [data-loader="fade"]) .lead-loader {
+  display: grid;
+}
+.lead-loader__glow {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(90vw, 900px);
+  aspect-ratio: 2;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: var(--color-gold);
+  opacity: 0;
+  filter: blur(110px);
+  animation: ll-glow 1.6s var(--ease-out-expo) 0.2s forwards;
+}
+.lead-loader__logo {
+  position: relative;
+  width: min(64vw, 520px);
+}
+.lead-loader__logo svg {
+  width: 100%;
+  height: auto;
+}
+.lead-loader [data-ll] {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  fill-opacity: 0;
+  opacity: 0;
+  animation:
+    ll-draw 0.85s cubic-bezier(0.76, 0, 0.24, 1) var(--d, 0s) forwards,
+    ll-fill 0.5s var(--ease-out-expo) var(--fd, 0.72s) forwards;
+}
+.lead-loader [data-part="word"] {
+  transform-box: fill-box;
+  clip-path: inset(-25% 100% -25% 0);
+  animation: ll-word 0.9s var(--ease-out-expo) 0.55s forwards;
+}
+@keyframes ll-draw {
+  0% {
+    opacity: 0;
+  }
+  6% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes ll-fill {
+  to {
+    fill-opacity: var(--fo, 1);
+  }
+}
+@keyframes ll-word {
+  from {
+    clip-path: inset(-25% 100% -25% 0);
+    transform: translateX(-3%);
+  }
+  to {
+    clip-path: inset(-25% -3% -25% 0);
+    transform: none;
+  }
+}
+@keyframes ll-glow {
+  to {
+    opacity: 0.16;
+  }
+}
+@keyframes ll-failsafe {
+  to {
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
+/* Exit: the navy wipes up off the page, the logo lifting with it */
+html[data-loader="out"] .lead-loader {
+  clip-path: inset(0 0 100% 0);
+  transition: clip-path 0.76s cubic-bezier(0.76, 0, 0.24, 1);
+}
+html[data-loader="out"] .lead-loader__logo {
+  transform: translateY(-7vh);
+  opacity: 0;
+  transition:
+    transform 0.76s cubic-bezier(0.76, 0, 0.24, 1),
+    opacity 0.45s ease;
+}
+html:is([data-loader="skip-out"], [data-loader="fade"]) .lead-loader {
+  opacity: 0;
+  transition: opacity 0.38s ease;
+}
+/* The hero's own entrance waits for the loader to start leaving */
+html[data-loading] [data-hero],
+html[data-loading] [data-hero] * {
+  animation-play-state: paused !important;
+}
+@media (max-width: 767px) {
+  .lead-loader__logo {
+    width: 78vw;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lead-loader [data-ll],
+  .lead-loader [data-part="word"],
+  .lead-loader__glow {
+    animation: none;
+    stroke-dashoffset: 0;
+    fill-opacity: var(--fo, 1);
+    opacity: 1;
+    clip-path: none;
+  }
+  .lead-loader__glow {
+    opacity: 0.16;
+  }
 }

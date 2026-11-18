@@ -16,15 +16,19 @@ import { fromPrice } from "@/lib/commerce/pricing";
 import { workshopSteps } from "@/content/story";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Later } from "@/components/ui/Later";
+import { defaultBiz, type Biz } from "@/lib/biz";
+
+/** On a preview the bench is theirs: the concept store's jewelers aren't named. */
+const generic = (t: string) => t.replace("Margot carves", "We carve").replace("Theo raises", "the setter raises").replace("his bench", "the bench");
 
 const pick = (i: ReturnType<typeof img>) => ({ src: i.src, blur: i.blur, w: i.w, h: i.h, alt: i.alt });
 
 /**
  * The homepage, shared by `/` (the 3D hero) and `/v2` (the same page without any 3D:
  * a lighter hero and the ring builder on its stills). One tree, one `hero` switch, so a
- * change to any section lands in both.
+ * change to any section lands in both. A personalised preview (/for/<token>) passes its business.
  */
-export async function HomePage({ hero }: { hero: "3d" | "v2" }) {
+export async function HomePage({ hero, biz = defaultBiz }: { hero: "3d" | "v2"; biz?: Biz }) {
   const v2 = hero === "v2";
   const [products, categories, gifts] = await Promise.all([catalog.getProducts(), catalog.getCategories(), catalog.getCollection("gift-edit")]);
   const worlds: World[] = categories.map((c) => {
@@ -32,7 +36,7 @@ export async function HomePage({ hero }: { hero: "3d" | "v2" }) {
     return {
       slug: c.slug,
       name: c.name,
-      blurb: c.blurb,
+      blurb: biz.preview ? c.blurb.replace("in Dallas", `in ${biz.area}`).replace("Dallas keeps", `${biz.area} keeps`) : c.blurb,
       count: items.length,
       img: pick(img(c.image)),
       from: Math.min(...items.map((p) => fromPrice(p).price)),
@@ -48,7 +52,7 @@ export async function HomePage({ hero }: { hero: "3d" | "v2" }) {
 
   return (
     <PageTransition>
-      <HomeHero variant={hero} />
+      <HomeHero variant={hero} biz={biz} />
       <Later id="facets">
         <Facets contained={v2} />
       </Later>
@@ -56,7 +60,7 @@ export async function HomePage({ hero }: { hero: "3d" | "v2" }) {
         <Worlds worlds={worlds} />
       </Later>
       <Later id="reviews">
-        <ReviewsMarquee />
+        <ReviewsMarquee biz={biz} />
       </Later>
       <Later id="ring">
         <ThroughTheRing photo={pick(img("proposal"))} />
@@ -68,16 +72,16 @@ export async function HomePage({ hero }: { hero: "3d" | "v2" }) {
         <MetalMorph golds={golds} href="/product/lume-signet" />
       </Later>
       <Later id="best">
-        <Bestsellers items={best} />
+        <Bestsellers items={best} area={biz.area} />
       </Later>
       <Later id="workshop">
-        <Workshop steps={workshopSteps.map((s) => ({ ...s, img: pick(img(s.img)) }))} />
+        <Workshop steps={workshopSteps.map((s) => ({ ...s, body: biz.preview ? generic(s.body) : s.body, img: pick(img(s.img)) }))} />
       </Later>
       <Later id="gifts">
         <GiftEdit items={(gifts?.products ?? []).map(toCard)} />
       </Later>
       <Later id="visit">
-        <VisitScene />
+        <VisitScene biz={biz} />
       </Later>
     </PageTransition>
   );

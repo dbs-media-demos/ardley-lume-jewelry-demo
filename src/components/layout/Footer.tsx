@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { Logo } from "@/components/brand/Logo";
-import { site, agency, agencyUrl, fullAddress } from "@/content/site";
+import { site, agency, agencyUrl } from "@/content/site";
+import { LeadLogo } from "@/components/brand/LeadLogo";
+import { areasFor, listOf, telOf, type Biz } from "@/lib/biz-core";
+import { defaultBiz } from "@/lib/biz";
 import { OpenBadge } from "@/components/ui/OpenBadge";
 import { Newsletter } from "@/components/forms/Newsletter";
 
@@ -42,14 +45,17 @@ const cols = [
   },
 ] as const;
 
-export function Footer() {
+/** The store's footer; a preview passes its business (their name, logo, towns, hours and number). */
+export function Footer({ biz = defaultBiz }: { biz?: Biz }) {
+  const tel = telOf(biz);
+  const word = biz.preview ? biz.shortName : site.name;
   return (
     <footer data-dark data-cv="footer" style={{ ["--cv" as string]: "calc(1927px - 114vw)", ["--cv-s" as string]: "1537px", ["--cv-t" as string]: "1230px" }} className="relative overflow-hidden bg-ink pt-14 pb-36 text-ivory md:pt-20 md:pb-12">
       <div className="wrap">
         <div className="grid gap-10 border-b border-ivory/12 pb-10 md:gap-12 md:pb-14 lg:grid-cols-[1.2fr_2fr]">
           <div>
             <Logo onDark />
-            <p className="mt-6 max-w-sm font-display text-3xl leading-tight text-ivory">Fine jewelry, made in the light, in Dallas.</p>
+            <p className="mt-6 max-w-sm font-display text-3xl leading-tight text-ivory">Fine jewelry, made in the light, in {biz.area}.</p>
             <p className="mt-4 max-w-sm text-sm text-mist">
               Join the list for new pieces, bench notes and the occasional private sale. One email a month, never more.
             </p>
@@ -76,31 +82,48 @@ export function Footer() {
         <div className="grid gap-8 py-10 text-sm text-mist md:grid-cols-3">
           <div>
             <p className="eyebrow mb-3">Showroom</p>
-            <p className="text-ivory/90">{fullAddress}</p>
-            <p>{site.address.neighborhood}, by appointment or walk-in</p>
+            <p className="text-ivory/90">{biz.address.full || biz.area}</p>
+            <p>{biz.preview ? `Clients from ${listOf(biz, areasFor(biz))} · by appointment or walk-in` : `${site.address.neighborhood}, by appointment or walk-in`}</p>
           </div>
-          <div>
-            <p className="eyebrow mb-3">Hours</p>
-            <OpenBadge onDark className="text-ivory/90" />
-            <p className="mt-1">Tue–Fri 11–7 · Sat 10–6 · Sun 12–5</p>
-          </div>
+          {(biz.hours || biz.hoursSummary) && (
+            <div>
+              <p className="eyebrow mb-3">Hours</p>
+              <OpenBadge onDark className="text-ivory/90" />
+              {biz.hoursSummary && <p className="mt-1">{biz.hoursSummary}</p>}
+            </div>
+          )}
           <div>
             <p className="eyebrow mb-3">Talk to us</p>
-            <a href={site.phoneHref} className="link flex min-h-9 w-fit items-center text-ivory/90">
-              {site.phone}
-            </a>
-            <a href={`mailto:${site.email}`} className="link flex min-h-9 w-fit items-center">
-              {site.email}
-            </a>
+            {tel && (
+              <a href={tel} className="link flex min-h-9 w-fit items-center text-ivory/90">
+                {biz.phoneDisplay}
+              </a>
+            )}
+            {!biz.preview && (
+              <a href={`mailto:${site.email}`} className="link flex min-h-9 w-fit items-center">
+                {site.email}
+              </a>
+            )}
           </div>
         </div>
 
         {/* Decorative wordmark, drawn with CSS content so it isn't read or contrast-checked as text. */}
-        <div aria-hidden className="footer-wordmark pointer-events-none -mb-[0.18em] font-display text-[18vw] leading-[0.8] tracking-[-0.03em] whitespace-nowrap text-ivory/[0.06] select-none" />
+        {biz.logo ? (
+          <div aria-hidden className="pointer-events-none pt-2 pb-8 text-ivory/[0.14] select-none">
+            <LeadLogo svg={biz.logo.svg} className="h-[clamp(56px,10vw,150px)] max-w-full" />
+          </div>
+        ) : (
+          <div
+            aria-hidden
+            data-word={word}
+            style={{ fontSize: `${Math.min(18, 234 / Math.max(13, word.length)).toFixed(2)}vw` }}
+            className="footer-wordmark pointer-events-none -mb-[0.18em] font-display leading-[0.8] tracking-[-0.03em] whitespace-nowrap text-ivory/[0.06] select-none"
+          />
+        )}
 
         <div className="flex flex-col gap-3 border-t border-ivory/12 pt-6 text-xs text-mist md:flex-row md:items-center md:justify-between">
           <p>
-            © {new Date().getFullYear()} {site.legalName}. A fictional business on a concept site.
+            {biz.preview ? `© ${new Date().getFullYear()} ${biz.name}. A concept site, prepared for ${biz.shortName}.` : `© ${new Date().getFullYear()} ${site.legalName}. A fictional business on a concept site.`}
           </p>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
             <Link href="/privacy" prefetch={false} className="link inline-flex min-h-9 items-center">

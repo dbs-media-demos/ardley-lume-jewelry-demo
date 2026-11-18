@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { EDGES, EXIT, FACES, FACE_TINT, SPECTRUM, STONE, project, trace, type Ray } from "@/components/fx/brilliant";
 import { afterLoad, prefersReducedMotion } from "@/lib/motion";
+import { loaderShowing, whenLoaderDone } from "@/lib/loader";
 
 const DEG = Math.PI / 180;
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
@@ -128,8 +129,12 @@ export function LightStone({ returned, children }: { returned: number; children:
     const onVis = () => (document.hidden ? pause() : play());
 
     let fadeTimer = 0;
-    // After load and idle, and never before the CSS drawing has finished (~2.4 s in).
-    const cancel = afterLoad(() => {
+    // After load and idle, and never before the CSS drawing has finished (~2.4 s in; on a preview
+    // that opens on the lead's logo, 2.4 s after the logo leaves, since the drawing waits for it).
+    const waited = loaderShowing();
+    const cancel = whenLoaderDone(() => {
+      const from = waited ? performance.now() : 0;
+      return afterLoad(() => {
       fadeTimer = window.setTimeout(
         () => {
           size();
@@ -141,9 +146,10 @@ export function LightStone({ returned, children }: { returned: number; children:
           if (hero) io.observe(hero);
           play();
         },
-        Math.max(0, 2400 - performance.now()),
+        Math.max(0, from + 2400 - performance.now()),
       );
-    }, 1500);
+      }, 1500);
+    });
 
     return () => {
       cancel();

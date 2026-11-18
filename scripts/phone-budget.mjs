@@ -2,14 +2,12 @@
 //   npm run build && node scripts/with-server.mjs node scripts/phone-budget.mjs [route] [width]
 // Prints LCP, CLS, TBT, first-load JS (compressed), every byte, and how many bytes of three.js arrived (must be 0).
 import { chromium } from "playwright";
-import path from "node:path";
 
-const exe = path.join(process.env.LOCALAPPDATA, "ms-playwright/chromium-1234/chrome-win64/chrome.exe");
 const base = process.env.URL ?? "http://localhost:4250";
 const [route = "/", width = "375"] = process.argv.slice(2);
 const w = Number(width);
 
-const browser = await chromium.launch({ executablePath: exe });
+const browser = await chromium.launch({ channel: "chrome", headless: true });
 const ctx = await browser.newContext({ viewport: { width: w, height: 812 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true, userAgent: "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Mobile Safari/537.36" });
 const page = await ctx.newPage();
 const cdp = await ctx.newCDPSession(page);

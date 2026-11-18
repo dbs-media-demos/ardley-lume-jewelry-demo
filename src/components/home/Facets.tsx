@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import { useDesktopScene } from "@/lib/motion";
 import { Counter } from "@/components/ui/Counter";
+import { useBiz } from "@/components/preview/BizContext";
 
 /* Round-brilliant crown, seen from above: table, stars, kites, upper girdles. */
 const P = (r: number, deg: number) => [500 + r * Math.cos((deg * Math.PI) / 180), 500 + r * Math.sin((deg * Math.PI) / 180)] as const;
@@ -27,7 +28,14 @@ const table = T.map(pt).join(" ");
  * `contained`: no dive comes before it (the /v2 homepage), so the oversized diagram is clipped to this scene instead of reaching up over the hero.
  */
 export function Facets({ contained = false }: { contained?: boolean }) {
+  const biz = useBiz();
   const root = useRef<HTMLElement>(null);
+  // A preview has no founding year to show: their Google rating takes its place.
+  type Stat = { v: number; label: string; plain?: boolean; suffix?: string };
+  const first: Stat | null = biz.preview
+    ? biz.rating && { v: biz.rating.value, label: `Google rating, ${biz.rating.count} reviews`, plain: true }
+    : { v: 2014, label: "At the bench in Dallas since", plain: true };
+  const stats = ([first, { v: 100, suffix: "%", label: "Recycled gold, certified" }, { v: 4200, suffix: "+", label: "Pieces made by hand" }] as (Stat | null)[]).filter((s): s is Stat => !!s);
 
   useDesktopScene(root, ({ gsap }, el) => {
     const lines = el.querySelectorAll<SVGGeometryElement>("[data-line]");
@@ -91,7 +99,7 @@ export function Facets({ contained = false }: { contained?: boolean }) {
         <div className="wrap grid min-h-[26rem] place-items-center pt-20 pb-12 text-center lg:min-h-[100svh] lg:py-0">
           <div data-manifesto className="max-w-4xl">
             <p className="eyebrow text-gold-pale" id="facets-title">
-              The Ardley &amp; Lume way
+              The {biz.preview ? biz.shortName : "Ardley & Lume"} way
             </p>
             <p className="mt-5 font-display text-[clamp(1.85rem,4.6vw,4.4rem)] leading-[1.08] lg:mt-6">
               {text.split(" ").map((w, i) => (
@@ -102,12 +110,8 @@ export function Facets({ contained = false }: { contained?: boolean }) {
             </p>
           </div>
         </div>
-        <div className="wrap grid gap-px overflow-hidden pb-16 sm:grid-cols-3 lg:pb-24">
-          {[
-            { v: 2014, label: "At the bench in Dallas since", plain: true },
-            { v: 100, suffix: "%", label: "Recycled gold, certified" },
-            { v: 4200, suffix: "+", label: "Pieces made by hand" },
-          ].map((s) => (
+        <div className={`wrap grid gap-px overflow-hidden pb-16 lg:pb-24 ${stats.length === 3 ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
+          {stats.map((s) => (
             <div key={s.label} className="flex items-baseline justify-between gap-4 border-t border-ivory/15 px-1 py-5 text-left sm:block sm:px-6 sm:py-7">
               <p className="spec text-mist">{s.label}</p>
               <p className="shrink-0 font-display text-5xl text-gold sm:mt-3 sm:text-6xl">{s.plain ? s.v : <Counter value={s.v} suffix={s.suffix} />}</p>

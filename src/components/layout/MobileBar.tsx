@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
-import { site } from "@/content/site";
+import { useBiz } from "@/components/preview/BizContext";
+import { telOf } from "@/lib/biz-core";
 import { cartCount, ui, useCart } from "@/lib/store";
 import { DemoStrip } from "./DemoPill";
 
 /** Phones: Call · Book a visit · Bag, always one thumb away (with the concept-site strip on top). Product pages use their own buy bar. */
 export function MobileBar() {
+  const biz = useBiz();
   const pathname = usePathname();
   const count = cartCount(useCart());
   if (pathname.startsWith("/product/") || pathname.startsWith("/engagement/build")) return null;
@@ -16,7 +18,7 @@ export function MobileBar() {
     <div className="fixed inset-x-0 bottom-0 z-[80] border-t border-ink/10 bg-ivory pb-[env(safe-area-inset-bottom)] md:hidden">
       <DemoStrip />
       <div className="grid grid-cols-[1fr_1.3fr_1fr]">
-        <a href={site.phoneHref} className="flex min-h-14 items-center justify-center gap-2 text-sm font-semibold">
+        <a href={telOf(biz) ?? "/visit"} className="flex min-h-14 items-center justify-center gap-2 text-sm font-semibold">
           <svg viewBox="0 0 24 24" className="size-4" aria-hidden>
             <path
               d="M6.6 3h3l1.5 4.2-2 1.3a11 11 0 006.4 6.4l1.3-2L21 14.4v3A2.6 2.6 0 0118.4 20 15.4 15.4 0 014 5.6 2.6 2.6 0 016.6 3z"

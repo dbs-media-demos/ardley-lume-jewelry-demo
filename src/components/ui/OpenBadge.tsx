@@ -2,23 +2,29 @@
 
 import { useSyncExternalStore } from "react";
 import clsx from "clsx";
-import { openStatus } from "@/lib/hours";
+import { useBiz } from "@/components/preview/BizContext";
+import { openStatus } from "@/lib/biz-core";
 
 const subscribe = (cb: () => void) => {
   const id = window.setInterval(cb, 60000);
   return () => window.clearInterval(id);
 };
-let last = "";
-const snap = () => {
-  const s = openStatus();
-  const key = `${s.open ? 1 : 0}|${s.label}`;
-  if (key !== last) last = key;
-  return last;
-};
 
-/** Live "Open now · until 7 pm" badge in Dallas time (rendered on the client only). */
+/**
+ * Live "Open now · until 7 pm" badge in the store's own timezone (rendered on the client only,
+ * its line held from the start). A preview without known hours shows nothing.
+ */
 export function OpenBadge({ className, onDark }: { className?: string; onDark?: boolean }) {
-  const key = useSyncExternalStore(subscribe, snap, () => "");
+  const biz = useBiz();
+  const key = useSyncExternalStore(
+    subscribe,
+    () => {
+      const s = openStatus(biz);
+      return s ? `${s.open ? 1 : 0}|${s.text}` : "-";
+    },
+    () => "",
+  );
+  if (key === "-" || !biz.hours) return null;
   const [open, label] = key ? [key[0] === "1", key.slice(2)] : [false, "Hours"];
   return (
     <span className={clsx("inline-flex items-center gap-2 text-sm", className)}>

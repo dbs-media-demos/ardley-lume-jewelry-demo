@@ -3,8 +3,8 @@ import type { CardData } from "@/lib/card-types";
 import { ProductCard } from "@/components/shop/ProductCard";
 import { Reveal, SplitReveal } from "@/components/ui/Reveal";
 
-/** Scene 7: the pieces Dallas keeps coming back for, ready to buy from right here. */
-export function Bestsellers({ items }: { items: CardData[] }) {
+/** Scene 7: the pieces the town keeps coming back for, ready to buy from right here. */
+export function Bestsellers({ items, area }: { items: CardData[]; area: string }) {
   return (
     <section className="bg-ivory py-24 text-ink md:py-32" aria-labelledby="best-title">
       <div className="wrap">
@@ -12,7 +12,7 @@ export function Bestsellers({ items }: { items: CardData[] }) {
           <div>
             <p className="eyebrow text-gold-ink">Bestsellers</p>
             <SplitReveal id="best-title" className="mt-4 max-w-2xl font-display text-[clamp(2.6rem,5vw,4.8rem)]">
-              Worn every day, by half of Dallas.
+              Worn every day, by half of {area}.
             </SplitReveal>
           </div>
           <Link href="/collections/bestsellers" className="btn btn-ghost">
